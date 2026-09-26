@@ -16,6 +16,8 @@ use crate::error::Result;
 use crate::job::ProgressEvent;
 use crate::model::{ModelRef, OutputFormat};
 
+pub mod local;
+
 /// 输入音频来源。
 #[derive(Debug, Clone)]
 pub enum Input {

@@ -1,14 +1,21 @@
-//! asep CLI：音频分离命令行工具（M0 骨架：完整子命令定义，实现随里程碑交付）。
+//! asep CLI：音频分离命令行工具。
 //!
-//! 命令与参数对应 PLAN.md §6 设计：
-//! - `separate`：单次分离（M1 起本地后端，M3 起 MVSEP 后端）
-//! - `models` / `model-info`：模型清单查询（M1 起）
-//! - `job-status`：任务状态查询（M3 起）
-//! - `serve`：HTTP 服务（M4 起）
+//! - `separate`：单次分离（本地后端 M1 起可用；MVSEP 后端 M3 交付）
+//! - `models` / `model-info`：模型清单查询（M1 后半交付）
+//! - `job-status`：任务状态查询（M3 交付）
+//! - `serve`：HTTP 服务（M4 交付）
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use audio_separator_core::backend::local::model_manage::ModelManager;
+use audio_separator_core::backend::local::LocalSeparator;
+use audio_separator_core::backend::{Input, SeparationRequest, Separator};
+use audio_separator_core::config::{Config, ModelListSource};
+use audio_separator_core::error::{Error, Result};
+use audio_separator_core::job::ProgressEvent;
+use audio_separator_core::model::{ModelRef, OutputFormat};
 use clap::{Parser, Subcommand};
+use tokio::sync::mpsc;
 
 /// 音频分离工具：本地多架构推理 / MVSEP 云 API / HTTP 服务。
 #[derive(Parser)]
@@ -148,6 +155,17 @@ enum FormatArg {
     M4a,
 }
 
+impl From<FormatArg> for OutputFormat {
+    fn from(f: FormatArg) -> Self {
+        match f {
+            FormatArg::Wav => OutputFormat::Wav16,
+            FormatArg::Flac => OutputFormat::Flac16,
+            FormatArg::Mp3 => OutputFormat::Mp3,
+            FormatArg::M4a => OutputFormat::M4a,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 enum RegionArg {
     Auto,
@@ -156,30 +174,229 @@ enum RegionArg {
     Sg,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::parse();
-    match cli.command {
-        Command::Separate(args) => {
-            // M0：仅展示解析结果，执行逻辑 M1/M3 交付。
-            println!("待执行：separate");
-            println!("  输入: {}", args.input);
-            println!("  输出目录: {}", args.output.display());
-            println!("  后端: {:?}", args.backend);
-            if let Some(model) = &args.model {
-                println!("  模型: {model}");
-            }
-            println!("  格式: {:?}", args.format);
-            not_implemented("separate", "M1（本地） / M3（MVSEP）");
-        }
-        Command::Models { .. } => not_implemented("models", "M1"),
-        Command::ModelInfo { .. } => not_implemented("model-info", "M1"),
+    let result = match cli.command {
+        Command::Separate(args) => run_separate(args).await,
+        Command::Models {
+            backend,
+            models_file,
+            models_url,
+        } => run_models(backend, models_file, models_url).await,
+        Command::ModelInfo {
+            model,
+            models_file,
+            models_url,
+        } => run_model_info(&model, models_file, models_url).await,
         Command::JobStatus { .. } => not_implemented("job-status", "M3"),
         Command::Serve(_) => not_implemented("serve", "M4"),
+    };
+    if let Err(e) = result {
+        eprintln!("错误: {e}");
+        std::process::exit(1);
     }
 }
 
-/// 尚未实现的子命令提示（M0 骨架阶段）。
-fn not_implemented(what: &str, milestone: &str) -> ! {
-    eprintln!("`{what}` 尚未实现（计划于 {milestone} 交付），参见 PLAN.md §9 里程碑。");
-    std::process::exit(1);
+/// `separate` 执行：解析模型三态、构建本地后端、订阅进度、等待完成。
+async fn run_separate(args: SeparateArgs) -> Result<()> {
+    // 配置：默认值 ← CLI 覆盖
+    let mut cfg = match &args.config {
+        Some(p) => Config::load(p)?,
+        None => Config::default(),
+    };
+    if let Some(f) = &args.models_file {
+        cfg.models.list = Some(ModelListSource::Path(f.clone()));
+    }
+    if let Some(u) = &args.models_url {
+        cfg.models.list = Some(ModelListSource::Url(u.clone()));
+    }
+
+    let model = parse_model_ref(&args.model)?;
+    let input = Input::Path(PathBuf::from(&args.input));
+    let req = SeparationRequest {
+        input,
+        model,
+        output_format: args.format.into(),
+        output_dir: args.output.clone(),
+        select_stems: args.stems.clone(),
+    };
+
+    // 进度订阅（进度/下载/推理输出到 stderr，结果到 stdout）
+    let (tx, mut rx) = mpsc::channel::<ProgressEvent>(64);
+    let consumer = tokio::spawn(async move {
+        while let Some(ev) = rx.recv().await {
+            print_progress(&ev);
+        }
+    });
+
+    let separator = match args.backend {
+        BackendArg::Local => {
+            // ModelManager::load 可能访问网络/文件系统且内部使用 blocking Client，
+            // 须在阻塞线程执行，避免阻塞操作跨入 tokio 异步上下文。
+            let cfg = cfg.clone();
+            tokio::task::spawn_blocking(move || LocalSeparator::new(&cfg))
+                .await
+                .map_err(|e| Error::Other(format!("本地后端初始化异常: {e}")))?
+        }
+        BackendArg::Mvsep => {
+            return Err(Error::Backend(
+                "MVSEP 后端计划于 M3 交付（见 PLAN.md §9）".to_string(),
+            ))
+        }
+    }?;
+
+    let result = separator.separate(req, Some(tx), None).await?;
+    let _ = consumer.await;
+
+    println!();
+    println!(
+        "分离完成（{:.1}s，后端 local）：",
+        result.elapsed.as_secs_f64()
+    );
+    for (stem, path) in &result.stems {
+        println!("  {stem}: {}", path.display());
+    }
+    Ok(())
+}
+
+/// 模型三态解析：URL → Url；存在的路径 → LocalPath；否则视为 manifest 名字。
+fn parse_model_ref(s: &Option<String>) -> Result<ModelRef> {
+    let s = s.as_ref().ok_or_else(|| {
+        Error::Config(
+            "请用 --model 指定模型：manifest 中的名字 / 模型下载 URL / 本地模型路径"
+                .to_string(),
+        )
+    })?;
+    if s.starts_with("http://") || s.starts_with("https://") {
+        return Ok(ModelRef::Url {
+            url: s.clone(),
+            arch: None,
+        });
+    }
+    if Path::new(s).exists() {
+        return Ok(ModelRef::LocalPath {
+            path: PathBuf::from(s),
+            arch: None,
+        });
+    }
+    Ok(ModelRef::Name(s.clone()))
+}
+
+/// 进度事件打印（stderr，\r 覆盖便于下载/推理进度原位刷新）。
+fn print_progress(ev: &ProgressEvent) {
+    match ev {
+        ProgressEvent::Stage(s) => {
+            eprintln!();
+            eprintln!("[阶段] {s}");
+        }
+        ProgressEvent::Download { downloaded, total } => {
+            let pct = total
+                .map(|t| if t > 0 { downloaded * 100 / t } else { 0 })
+                .unwrap_or(0);
+            let total_str = total
+                .map(|t| t.to_string())
+                .unwrap_or_else(|| "?".to_string());
+            if let Some(t) = total {
+                if downloaded >= t {
+                    eprintln!("\r下载完成（{t} 字节）");
+                    return;
+                }
+            }
+            eprint!("\r下载模型… {pct}%（{downloaded} / {total_str} 字节）");
+        }
+        ProgressEvent::Process { percent, message } => {
+            let pct = (percent * 100.0) as u32;
+            match message {
+                Some(m) => eprint!("\r推理… {m} ({pct}%)"),
+                None => eprint!("\r推理… {pct}%"),
+            }
+        }
+        ProgressEvent::Writing { stem, percent } => {
+            let pct = (percent * 100.0) as u32;
+            eprint!("\r写入分轨 {stem}… {pct}%");
+        }
+        ProgressEvent::Finished => {}
+    }
+}
+
+/// 尚未实现的子命令提示。
+fn not_implemented(what: &str, milestone: &str) -> Result<()> {
+    Err(Error::Backend(format!(
+        "`{what}` 尚未实现（计划于 {milestone} 交付），参见 PLAN.md §9 里程碑"
+    )))
+}
+
+/// 从 CLI 覆盖项构建配置（config 文件 → 默认 → CLI 覆盖）。
+fn build_config(models_file: Option<PathBuf>, models_url: Option<String>) -> Result<Config> {
+    let mut cfg = Config::default();
+    if let Some(f) = &models_file {
+        cfg.models.list = Some(ModelListSource::Path(f.clone()));
+    }
+    if let Some(u) = &models_url {
+        cfg.models.list = Some(ModelListSource::Url(u.clone()));
+    }
+    Ok(cfg)
+}
+
+/// `models`：列出清单中的可用模型。
+async fn run_models(
+    backend: BackendArg,
+    models_file: Option<PathBuf>,
+    models_url: Option<String>,
+) -> Result<()> {
+    if backend != BackendArg::Local {
+        return Err(Error::Backend(
+            "MVSEP 模型列表计划于 M3 交付".to_string(),
+        ));
+    }
+    let cfg = build_config(models_file, models_url)?;
+    let manager = tokio::task::spawn_blocking(move || ModelManager::load(&cfg.models))
+        .await
+        .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
+    let list = manager.list();
+    if list.models.is_empty() {
+        println!("清单为空（未配置 models.list 或清单无模型）");
+        return Ok(());
+    }
+    println!("模型清单 v{}（{} 个模型）", list.version, list.models.len());
+    for m in &list.models {
+        let stems = m.stems.join("、");
+        let src = m
+            .local_path
+            .as_ref()
+            .map(|p| format!("本地:{}", p.display()))
+            .or_else(|| {
+                m.source_url
+                    .as_ref()
+                    .map(|u| format!("下载:{}", u))
+            })
+            .unwrap_or_else(|| "无来源".to_string());
+        println!(
+            "- {} [{} / {}] 分轨: {} | {}",
+            m.name, m.architecture, m.engine, stems, src
+        );
+    }
+    Ok(())
+}
+
+/// `model-info`：查看单个模型详情。
+async fn run_model_info(
+    model: &str,
+    models_file: Option<PathBuf>,
+    models_url: Option<String>,
+) -> Result<()> {
+    let cfg = build_config(models_file, models_url)?;
+    let manager = tokio::task::spawn_blocking(move || ModelManager::load(&cfg.models))
+        .await
+        .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
+    let entry = manager
+        .list()
+        .get(model)
+        .ok_or_else(|| Error::Model(format!("模型「{model}」不在清单中")))?;
+    println!(
+        "{}",
+        serde_json::to_string_pretty(entry).map_err(Error::Json)?
+    );
+    Ok(())
 }

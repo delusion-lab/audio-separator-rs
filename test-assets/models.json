@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "name": "UVR_MDXNET_9482",
+      "architecture": "mdx",
+      "engine": "onnx",
+      "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/source-separation-models/UVR_MDXNET_9482.onnx",
+      "sha256": "9d78f8566fa8198065214ab628be1de966a500c57786695aa4b13e2b27a7727d",
+      "local_path": null,
+      "stems": ["vocals", "instrumental"],
+      "license": "MIT (UVR-MDX-NET) / Apache-2.0 (sherpa-onnx 分发)",
+      "params": {
+        "overlap": 0.25,
+        "batch_size": 1
+      }
+    }
+  ]
+}

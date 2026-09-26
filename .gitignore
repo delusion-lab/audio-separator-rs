@@ -9,5 +9,17 @@
 # Local config (secrets)
 config.toml
 
+# 本地 ORT 配置（含本机路径；复现见 scripts/fetch-ort.ps1）
+.cargo/config.toml
+
+# 构建日志
+build*.log
+ort*.log
+
+# 测试输出目录与测试音频（脚本/清单入库，音频按需下载）
+out-*/
+test_input.wav
+test-assets/*.wav
+
 # Runtime artifacts
 *.tmp

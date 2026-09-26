@@ -7,6 +7,7 @@
 pub mod backend;
 pub mod config;
 pub mod error;
+pub mod io;
 pub mod job;
 pub mod model;
 
