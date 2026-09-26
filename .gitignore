@@ -1,0 +1,13 @@
+# Rust build artifacts
+/target
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+
+# Local config (secrets)
+config.toml
+
+# Runtime artifacts
+*.tmp

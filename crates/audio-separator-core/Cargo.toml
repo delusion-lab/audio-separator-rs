@@ -1,0 +1,15 @@
+[package]
+name = "audio-separator-core"
+description = "音频分离核心库：多架构本地推理与 MVSEP 云后端抽象"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+thiserror = "2"
+async-trait = "0.1"
+tokio = { version = "1", features = ["sync"] }
+tokio-util = { version = "0.7", features = ["rt"] }
