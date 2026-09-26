@@ -1,0 +1,69 @@
+{
+  "version": 2,
+  "models": [
+    {
+      "name": "UVR_MDXNET_9482",
+      "architecture": "mdx",
+      "engine": "onnx",
+      "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/source-separation-models/UVR_MDXNET_9482.onnx",
+      "sha256": "9d78f8566fa8198065214ab628be1de966a500c57786695aa4b13e2b27a7727d",
+      "local_path": null,
+      "stems": ["vocals", "instrumental"],
+      "license": "MIT (UVR-MDX-NET) / Apache-2.0 (sherpa-onnx 分发)",
+      "params": {
+        "overlap": 0.25,
+        "batch_size": 1
+      }
+    },
+    {
+      "name": "model_bs_roformer_ep_368_sdr_12.9628",
+      "architecture": "bs_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/model_bs_roformer_ep_368_sdr_12.9628.ckpt",
+      "sha256": "f6c94864adfb73bbb0ca58ec14d58dd0b364549e9fb61433ae51916f3e2f8d0b",
+      "local_path": null,
+      "stems": ["vocals", "instrumental"],
+      "license": "MIT (BS-RoFormer, lucidrains)",
+      "params": {
+        "n_fft": 2048,
+        "hop_length": 441,
+        "dim": 512,
+        "depth": 12,
+        "heads": 8,
+        "num_bands": 62,
+        "sample_rate": 44100
+      }
+    },
+    {
+      "name": "model_mel_band_roformer_ep_3005_sdr_11.4360",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/model_mel_band_roformer_ep_3005_sdr_11.4360.ckpt",
+      "sha256": "21b9d0958e35b8ebfbe2afe69bbd5444e5ffe2f5d80ae0d583b833d2f3c0d139",
+      "local_path": null,
+      "stems": ["vocals", "instrumental"],
+      "license": "MIT (Mel-Band-RoFormer, lucidrains)",
+      "params": {
+        "n_fft": 2048,
+        "hop_length": 441,
+        "dim": 384,
+        "depth": 12,
+        "heads": 8,
+        "num_bands": 60,
+        "dim_freqs_in": 1025,
+        "sample_rate": 44100
+      }
+    },
+    {
+      "name": "model_bs_polarformer_float16",
+      "architecture": "bs_polarformer",
+      "engine": "candle",
+      "source_url": "https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.20/model_bs_polarformer_float16.ckpt",
+      "sha256": "fc8b72c3beb92caad4e14f180979c02ddf18a330182176cf6c7bb0eb6c685e87",
+      "local_path": null,
+      "stems": ["vocals", "instrumental"],
+      "license": "MIT (BS-PolarFormer)",
+      "params": {}
+    }
+  ]
+}

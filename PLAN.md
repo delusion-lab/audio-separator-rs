@@ -228,6 +228,19 @@ pub trait Separator: Send + Sync {
 }
 ```
 
+#### 5.3.1.1 已锁定模型清单（`models.json` v2，本地实装）
+
+项目根 `models.json` 为当前生效清单（4 模型，sha256 全部实算自官方源下载文件，通过用户本机 `127.0.0.1:12355` HTTP 代理分片下载）：
+
+| name | architecture / engine | 来源 | sha256（前 16） | 备注 |
+| --- | --- | --- | --- | --- |
+| UVR_MDXNET_9482 | mdx / onnx | sherpa-onnx releases | `9d78f8566fa81980` | M1 真机校准模型（n_fft=4096/hop=1024/dim_f=2048） |
+| model_bs_roformer_ep_368_sdr_12.9628 | bs_roformer / candle | TRvlvr/model_repo all_public_uvr_models | `f6c94864adfb73bb` | M2-B 已移植；与参考实现 SHA256 一致 |
+| model_mel_band_roformer_ep_3005_sdr_11.4360 | mel_band_roformer / candle | TRvlvr/model_repo all_public_uvr_models | `21b9d0958e35b8eb` | **权重锁定（2026-09-26）**：官方名为 `…_11.4360.ckpt`（非 11.2360）；yaml 同源 `TRvlvr/application_data` mdx_c_configs；dim=384、num_bands=60、dim_freqs_in=1025、stereo、mask_estimator_depth=2 |
+| model_bs_polarformer_float16 | bs_polarformer / candle | MSST releases v1.0.20 | `fc8b72c3beb92caa` | **float16 ckpt（97.7MB）**：M2-D 转换器需支持 fp16→fp32；yaml 同 release |
+
+> 清单维护：本地文件 + 后续远程 URL（M3 初始化独立 GitHub 仓库统一维护）；`scripts/download-shards.ps1` 为代理分片下载工具。
+
 #### 5.3.2 架构注册表（architecture registry）
 
 
