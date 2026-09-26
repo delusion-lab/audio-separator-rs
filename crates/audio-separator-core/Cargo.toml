@@ -16,9 +16,13 @@ tokio-util = { version = "0.7", features = ["rt"] }
 
 # 本地推理引擎（ort 仅 2.0.0-rc 线可用，1.x 已全部 yanked；去 copy-dylibs 规避 Windows 复制 DLL 被占用问题，DLL 由构建脚本/手动放置）
 ort = { version = "2.0.0-rc.13", default-features = false, features = ["std", "ndarray", "download-binaries", "tls-native", "api-27"] }
+candle-core = "0.9"
+candle-nn = "0.9"
+rayon = "1"
 ndarray = "0.17"
 num-complex = "0.4"
 realfft = "3"
+rustfft = "6"
 
 # 音频处理
 symphonia = { version = "0.5", features = ["mp3", "flac", "wav", "ogg", "vorbis", "aac", "isomp4", "pcm"] }

@@ -4,5 +4,7 @@
 //! 参数绝不跨架构混用（PLAN.md §5.3.2，D2 决策）。
 
 pub mod mdx;
+pub mod roformer_stft;
+pub mod bs_roformer;
 
 pub use mdx::{separate_mdx, MdxParams};

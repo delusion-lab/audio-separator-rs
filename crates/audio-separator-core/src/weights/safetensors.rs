@@ -57,16 +57,20 @@ pub fn write(path: &Path, tensors: Vec<TensorData>) -> Result<()> {
     }
     let mut header_json = serde_json::to_vec(&header)?;
     header_json.push(b'\n');
-    let header_len = header_json.len() as u64;
+    // safetensors 规范：文件头部 8 字节字段 = **8 字节对齐后**的 header 长度，
+    // 数据区紧跟对齐边界开始。若写未对齐长度，reader 按字段跳过 header 会
+    // 落在 padding 中间，导致全部 data_offsets 错位（曾踩坑）。
+    let header_len_aligned = align8(header_json.len() as u64) as usize;
 
     let mut file = std::fs::File::create(path)?;
-    file.write_all(&header_len.to_le_bytes())?;
+    file.write_all(&(header_len_aligned as u64).to_le_bytes())?;
     file.write_all(&header_json)?;
     let mut written = (8 + header_json.len()) as u64;
     let data_start = align8(written);
-    // header 区尾部对齐（规范允许，数据从 8 字节对齐处开始）
+    // header 区尾部补齐到 8 字节对齐（与头部字段一致）。用空格而非 \x00：
+    // JSON 解析器把尾部空白视为合法，0x00 则报 "Extra data"。
     while written < data_start {
-        file.write_all(&[0u8])?;
+        file.write_all(b" ")?;
         written += 1;
     }
     for t in by_name.values() {

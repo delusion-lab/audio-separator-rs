@@ -29,6 +29,10 @@ pub enum Error {
     #[error("后端错误: {0}")]
     Backend(String),
 
+    /// candle 引擎错误（bs_roformer 等本地 torch 移植架构）。
+    #[error("candle 错误: {0}")]
+    Candle(#[from] candle_core::Error),
+
     /// 网络错误。
     #[error("网络错误: {0}")]
     Network(String),

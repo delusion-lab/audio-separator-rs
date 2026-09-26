@@ -27,3 +27,5 @@ test-assets/*.ckpt
 *.tmp
 convert.log
 test.log
+
+*.log
