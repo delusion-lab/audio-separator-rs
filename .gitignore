@@ -20,6 +20,8 @@ ort*.log
 out-*/
 test_input.wav
 test-assets/*.wav
+test-assets/*.safetensors
+test-assets/*.ckpt
 
 # Runtime artifacts
 *.tmp

@@ -29,3 +29,6 @@ rubato = "0.16"
 reqwest = { version = "0.12", features = ["blocking", "stream"] }
 sha2 = "0.10"
 dirs = "5"
+
+# 权重转换（torch 存档解析 → safetensors）
+zip = { version = "2", default-features = false, features = ["deflate"] }

@@ -1,6 +1,6 @@
 # audio-separator-rs 项目规划（v0.2 草案）
 
-> 状态：架构与关键决策已获用户确认（2026-09-26），Roformer 引擎路线已确认（candle 移植为主、ONNX 导出为备选）；**M0 workspace 骨架已完成（2026-09-26）**；**M1 本地内核 + mdx 端到端已完成（2026-09-26）**；**Roformer spike 结论已出（2026-09-26，见 docs/spike-roformer.md）：放弃 ONNX 导出，candle 为主 + ckpt→safetensors 预转换/运行时安全解析**。调研依据：MVSEP 官方 API 文档、crates.io / PyPI 音频分离生态、MSST 训练框架与 UVR5 模型体系。
+> 状态：架构与关键决策已获用户确认（2026-09-26），Roformer 引擎路线已确认（candle 移植为主、ONNX 导出为备选）；**M0 workspace 骨架已完成（2026-09-26）**；**M1 本地内核 + mdx 端到端已完成（2026-09-26）**；**Roformer spike 结论已出（2026-09-26，见 docs/spike-roformer.md）：放弃 ONNX 导出，candle 为主 + ckpt→safetensors 预转换/运行时安全解析**；**M2-A 权重转换器已完成（2026-09-26）：Rust 受限 pickle 解析器 + torch 存档容器 + safetensors 写入，610MB bs_roformer ep_368 ckpt（实测 dim=512，与 uvr_roformer 参考一致）转换并独立验证通过（无 NaN、形状正确）**。调研依据：MVSEP 官方 API 文档、crates.io / PyPI 音频分离生态、MSST 训练框架与 UVR5 模型体系。
 
 ## 1. 项目目标
 
@@ -346,7 +346,7 @@ MVSEP 路径: create(hash) → poll get(waiting→processing→done) → 下载 
 | -- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | M0 | workspace 骨架、core 类型（config/error/job/model）、CLI 骨架                                                                                                            | ✅ 已完成：`cargo build` 通过，`asep --help` 正常 |
 | M1 | **本地内核 + 模型管理**：onnx 引擎、manifest JSON（本地 + URL）、懒下载与 sha256 校验、URL / 本地路径模型、架构注册表骨架；**mdx 架构端到端**；spike：Roformer 家族 ONNX 导出可行性结论                               | ✅ 已完成（2026-09-26）：`UVR_MDXNET_9482` 端到端分出人声 / 伴奏（合成与真实歌曲均验证，两轨相关系数 0.044）；`asep separate / models / model-info` 可用；Roformer spike 结论已出（docs/spike-roformer.md） |
-| M2 | **Roformer 家族移植优先**：bs\_roformer（1296 版，参考 uvr\_roformer 结构）→ mel\_band\_roformer → bs\_polarformer，candle 引擎，ckpt→safetensors 预转换 + 运行时安全解析，参数 schema 对齐 lucidrains/MSST；**onnx 家族扩展**：demucs/mdxc（复用 mdx 管线）；vr 架构原始权重为 .pth（UVR 生态），格式与推理管线核实后接入 | 三款 Roformer 模型 CLI 可跑，参数按架构校验     |
+| M2 | **权重转换与 Roformer 移植**：M2-A✅（2026-09-26）ckpt→safetensors 转换器（受限 pickle 解析 + 懒转换缓存）；M2-B bs\_roformer（ep\_368 实测 dim=512，参考 uvr\_roformer 结构一致）→ mel\_band\_roformer → bs\_polarformer，candle 引擎，参数 schema 对齐 lucidrains/MSST；**onnx 家族扩展**：demucs/mdxc（复用 mdx 管线）；vr 架构原始权重为 .pth（UVR 生态），格式与推理管线核实后接入 | 三款 Roformer 模型 CLI 可跑，参数按架构校验     |
 | M3 | MVSEP 后端：客户端（create/poll/cancel/webhook）、模型目录映射、CLI 单次分离；**初始化模型清单 GitHub 仓库**                                                                                 | 真实 API Key 跑通人声 / 伴奏分离            |
 | M4 | 服务端：axum 上传 / 任务 / 下载 / 取消、并发控制、Bearer Token                                                                                                                   | curl 全流程：上传→轮询→下载                 |
 | M5 | 完善：FLAC/MP3 输出、webhook、单元 / 集成测试、README、CI、Docker                                                                                                              | 文档与测试齐备                           |
