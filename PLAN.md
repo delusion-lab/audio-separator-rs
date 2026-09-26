@@ -1,6 +1,6 @@
 # audio-separator-rs 项目规划（v0.2 草案）
 
-> 状态：架构与关键决策已获用户确认（2026-09-26），Roformer 引擎路线已确认（candle 移植为主、ONNX 导出为备选）；**M0 workspace 骨架已完成（2026-09-26）**；**M1 本地内核 + mdx 端到端已完成（2026-09-26）**。调研依据：MVSEP 官方 API 文档、crates.io / PyPI 音频分离生态、MSST 训练框架与 UVR5 模型体系。
+> 状态：架构与关键决策已获用户确认（2026-09-26），Roformer 引擎路线已确认（candle 移植为主、ONNX 导出为备选）；**M0 workspace 骨架已完成（2026-09-26）**；**M1 本地内核 + mdx 端到端已完成（2026-09-26）**；**Roformer spike 结论已出（2026-09-26，见 docs/spike-roformer.md）：放弃 ONNX 导出，candle 为主 + ckpt→safetensors 预转换/运行时安全解析**。调研依据：MVSEP 官方 API 文档、crates.io / PyPI 音频分离生态、MSST 训练框架与 UVR5 模型体系。
 
 ## 1. 项目目标
 
@@ -250,13 +250,9 @@ pub trait Separator: Send + Sync {
 | mel\_band\_roformer     | candle | vocals/instrumental       | PyTorch .ckpt，M2 移植    |
 | bs\_polarformer         | candle | vocals/instrumental       | 极坐标嵌入变体，M2 移植          |
 
-> **引擎双轨的由来**
+> **引擎双轨的由来与 spike 结论**
 >
-> ：调研确认 Roformer 家族当前无成熟 ONNX 生态（主流为 PyTorch 权重）。规划 M1 做一次 spike：验证 ONNX 导出可行性（参照 ADC25 关于复杂张量 / FFT 导出难点的处理，export 时把复数域运算固化进图）；
->
-> **若导出不可行，则走 candle 引擎**
->
-> ，从 MSST /lucidrains/hunterFormsBS 移植各架构前向（复数 STFT、band-split、RoPE、轴向注意力、mel 映射均在 Rust 实现）。candle 为纯 Rust 推理框架，符合 "无 Python 依赖" 目标。
+> ：调研确认 Roformer 家族当前无成熟 ONNX 生态（主流为 PyTorch 权重）。M1 spike（2026-09-26，见 `docs/spike-roformer.md`）结论：**放弃 ONNX 导出**——纯 Rust 直接加载原始 `.ckpt` 已有先例（`uvr_roformer`，Burn 引擎；`pt-loader` / `anamnesis` 提供 ckpt→safetensors 转换）。因此走 **candle 引擎 + ckpt→safetensors 预转换（或运行时安全解析）**，从 MSST /lucidrains/uvr_roformer 移植各架构前向（复数 STFT、band-split、RoPE、轴向注意力、mel 映射均在 Rust 实现）。candle 为纯 Rust 推理框架，符合 "无 Python 依赖" 目标。
 
 #### 5.3.3 模型解析与获取流程
 
@@ -349,8 +345,8 @@ MVSEP 路径: create(hash) → poll get(waiting→processing→done) → 下载 
 | 阶段 | 内容                                                                                                                                                             | 验收                                |
 | -- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
 | M0 | workspace 骨架、core 类型（config/error/job/model）、CLI 骨架                                                                                                            | ✅ 已完成：`cargo build` 通过，`asep --help` 正常 |
-| M1 | **本地内核 + 模型管理**：onnx 引擎、manifest JSON（本地 + URL）、懒下载与 sha256 校验、URL / 本地路径模型、架构注册表骨架；**mdx 架构端到端**；spike：Roformer 家族 ONNX 导出可行性结论                               | ✅ 已完成（2026-09-26）：`UVR_MDXNET_9482` 端到端分出人声 / 伴奏（合成与真实歌曲均验证，两轨相关系数 0.044）；`asep separate / models / model-info` 可用。**剩余**：Roformer ONNX 导出 spike 结论（M2 前置） |
-| M2 | **架构扩展**：demucs /vr/mdxc（onnx 家族）；**Roformer 家族移植**（bs\_roformer /mel\_band\_roformer/bs\_polarformer，candle 引擎或 ONNX 导出路径），参数 schema 逐架构对齐 lucidrains/MSST 实现 | 三款 Roformer 模型 CLI 可跑，参数按架构校验     |
+| M1 | **本地内核 + 模型管理**：onnx 引擎、manifest JSON（本地 + URL）、懒下载与 sha256 校验、URL / 本地路径模型、架构注册表骨架；**mdx 架构端到端**；spike：Roformer 家族 ONNX 导出可行性结论                               | ✅ 已完成（2026-09-26）：`UVR_MDXNET_9482` 端到端分出人声 / 伴奏（合成与真实歌曲均验证，两轨相关系数 0.044）；`asep separate / models / model-info` 可用；Roformer spike 结论已出（docs/spike-roformer.md） |
+| M2 | **架构扩展**：vr（onnx 家族，复用引擎快速增量）；**Roformer 家族移植**（bs\_roformer → mel\_band\_roformer → bs\_polarformer，candle 引擎，ckpt→safetensors 预转换 + 运行时安全解析），参数 schema 逐架构对齐 lucidrains/MSST | 三款 Roformer 模型 CLI 可跑，参数按架构校验     |
 | M3 | MVSEP 后端：客户端（create/poll/cancel/webhook）、模型目录映射、CLI 单次分离；**初始化模型清单 GitHub 仓库**                                                                                 | 真实 API Key 跑通人声 / 伴奏分离            |
 | M4 | 服务端：axum 上传 / 任务 / 下载 / 取消、并发控制、Bearer Token                                                                                                                   | curl 全流程：上传→轮询→下载                 |
 | M5 | 完善：FLAC/MP3 输出、webhook、单元 / 集成测试、README、CI、Docker                                                                                                              | 文档与测试齐备                           |
