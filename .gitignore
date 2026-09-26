@@ -25,3 +25,5 @@ test-assets/*.ckpt
 
 # Runtime artifacts
 *.tmp
+convert.log
+test.log
