@@ -102,6 +102,8 @@ version = "0.1.0"
 dependencies = [
  "audio-separator-core",
  "clap",
+ "reqwest",
+ "serde",
  "serde_json",
  "tokio",
 ]

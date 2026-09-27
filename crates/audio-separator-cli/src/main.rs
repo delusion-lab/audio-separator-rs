@@ -5,6 +5,8 @@
 //! - `job-status`：任务状态查询（M3 交付）
 //! - `serve`：HTTP 服务（M4 交付）
 
+mod server_client;
+
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -15,6 +17,7 @@ use audio_separator_core::backend::{Input, SeparationRequest, Separator};
 use audio_separator_core::config::{Config, ModelListSource, MvsepRegion};
 use audio_separator_core::error::{Error, Result};
 use audio_separator_core::job::ProgressEvent;
+use server_client::{ServerClient, SubmitArgs};
 use audio_separator_core::model::{ModelRef, OutputFormat};
 use clap::{Parser, Subcommand};
 use tokio::sync::mpsc;
@@ -32,7 +35,7 @@ enum Command {
     /// Separate a single audio file (local or MVSEP backend).
     Separate(SeparateArgs),
 
-    /// List available models (local = manifest / mvsep = platform API).
+    /// List available models (local = manifest / mvsep = platform API / server = asep-server API).
     Models {
         /// Backend.
         #[arg(long, value_enum, default_value_t = BackendArg::Local)]
@@ -43,6 +46,12 @@ enum Command {
         /// Override model list source: remote JSON URL.
         #[arg(long)]
         models_url: Option<String>,
+        /// asep-server base URL (used when backend=server).
+        #[arg(long, default_value = "http://127.0.0.1:8080")]
+        server_url: String,
+        /// Bearer token for the asep-server API (optional).
+        #[arg(long)]
+        auth_token: Option<String>,
     },
 
     /// Show model details (architecture, engine, stems, params, source).
@@ -58,7 +67,7 @@ enum Command {
         models_url: Option<String>,
     },
 
-    /// Query task status (MVSEP hash or local job id).
+    /// Query task status (MVSEP hash or asep-server task id).
     #[command(name = "job-status")]
     JobStatus {
         /// Task hash or job id.
@@ -66,6 +75,12 @@ enum Command {
         /// MVSEP API key (when querying MVSEP tasks).
         #[arg(long, env = "ASEP_MVSEP_API_KEY")]
         api_key: Option<String>,
+        /// asep-server base URL; when set, query the server instead of MVSEP.
+        #[arg(long)]
+        server_url: Option<String>,
+        /// Bearer token for the asep-server API (optional).
+        #[arg(long)]
+        auth_token: Option<String>,
     },
 
     /// Start the HTTP server.
@@ -153,6 +168,14 @@ struct SeparateArgs {
     #[arg(long)]
     config: Option<PathBuf>,
 
+    /// asep-server base URL (used when backend=server).
+    #[arg(long, default_value = "http://127.0.0.1:8080")]
+    server_url: String,
+
+    /// Bearer token for the asep-server API (optional).
+    #[arg(long)]
+    auth_token: Option<String>,
+
     /// Verbosity (repeatable).
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
@@ -174,6 +197,7 @@ struct ServeArgs {
 enum BackendArg {
     Local,
     Mvsep,
+    Server,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
@@ -233,13 +257,20 @@ async fn main() {
             backend,
             models_file,
             models_url,
-        } => run_models(backend, models_file, models_url).await,
+            server_url,
+            auth_token,
+        } => run_models(backend, models_file, models_url, server_url, auth_token).await,
         Command::ModelInfo {
             model,
             models_file,
             models_url,
         } => run_model_info(&model, models_file, models_url).await,
-        Command::JobStatus { id, api_key } => run_job_status(&id, api_key).await,
+        Command::JobStatus {
+            id,
+            api_key,
+            server_url,
+            auth_token,
+        } => run_job_status(&id, api_key, server_url, auth_token).await,
         Command::Serve(_) => not_implemented("serve", "M4"),
     };
     if let Err(e) = result {
@@ -313,6 +344,10 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
                     .map_err(|e| Error::Other(format!("local backend init failed: {e}")))??,
             )
         }
+        BackendArg::Server => {
+            let client = ServerClient::new(&args.server_url, args.auth_token.clone())?;
+            return run_separate_server(&client, &args).await;
+        }
         BackendArg::Mvsep => {
             // 加载清单（manifest 的 mvsep 映射用于按名引用）；网络型清单在阻塞线程拉取。
             let cfg_clone = cfg.clone();
@@ -356,6 +391,93 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
         println!("  {stem}: {}", path.display());
     }
     Ok(())
+}
+
+/// `separate --backend server`：把任务交给 asep-server 执行，轮询状态并下载分轨。
+async fn run_separate_server(client: &ServerClient, args: &SeparateArgs) -> Result<()> {
+    // 输入形态：URL → audio_url 字段透传（server 仅 MVSEP 后端支持）；本地文件 → multipart 上传。
+    let (audio_path, audio_url) =
+        if args.input.starts_with("http://") || args.input.starts_with("https://") {
+            (None, Some(args.input.clone()))
+        } else {
+            (Some(PathBuf::from(&args.input)), None)
+        };
+    let model = args.model.as_deref().ok_or_else(|| {
+        Error::Config(
+            "Please specify a model with --model: a manifest name / model download URL / local model path"
+                .to_string(),
+        )
+    })?;
+    let submit = SubmitArgs {
+        audio_path,
+        audio_url,
+        model: model.to_string(),
+        backend: "local".to_string(),
+        format: format_arg_to_server(args.format),
+        stems: args.stems.clone().unwrap_or_default(),
+        config_url: args.config_url.clone(),
+    };
+    let task_id = client.submit(&submit).await?;
+    println!("Task {task_id} submitted (backend server, model {model})");
+
+    // 轮询：阶段变化打印 [stage]，否则原位刷新进度。
+    let mut last_msg = String::new();
+    let status = loop {
+        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        let st = client.status(&task_id).await?;
+        // 先克隆字段，避免 loop 内 st 的 move（break st）与后续借用冲突。
+        let st_status = st.status.clone();
+        let st_message = st.message.clone();
+        let st_error = st.error.clone();
+        if st_message != last_msg {
+            eprintln!();
+            eprintln!("[stage] {st_message}");
+            last_msg = st_message.clone();
+        } else {
+            eprint!("\rstatus: {st_status} ({:.0}%)", st.progress * 100.0);
+        }
+        match st_status.as_str() {
+            "done" => break st,
+            "failed" => {
+                let err = st_error.unwrap_or_else(|| st_message.clone());
+                return Err(Error::Backend(format!("task failed: {err}")));
+            }
+            "cancelled" => {
+                return Err(Error::Backend(format!("task cancelled: {st_message}")))
+            }
+            _ => {}
+        }
+    };
+    eprintln!();
+    println!("Separation done (backend server):");
+
+    // 下载：默认全部分轨；--stems 指定子集。
+    let stems: Vec<String> = if let Some(s) = &args.stems {
+        s.clone()
+    } else {
+        status.files.iter().map(|f| f.name.clone()).collect()
+    };
+    if stems.is_empty() {
+        println!("(no output files)");
+        return Ok(());
+    }
+    for stem in &stems {
+        let path = client.download(&task_id, stem, &args.output).await?;
+        println!("  {stem}: {}", path.display());
+    }
+    Ok(())
+}
+
+/// FormatArg → server 侧 format 字符串。
+fn format_arg_to_server(f: FormatArg) -> String {
+    match f {
+        FormatArg::Wav => "wav".to_string(),
+        FormatArg::Wav32 => "wav32".to_string(),
+        FormatArg::Flac => "flac".to_string(),
+        FormatArg::Flac24 => "flac24".to_string(),
+        FormatArg::Mp3 => "mp3".to_string(),
+        FormatArg::M4a => "m4a".to_string(),
+    }
 }
 
 /// 模型三态解析：URL → Url；存在的路径 → LocalPath；否则视为 manifest 名字。
@@ -426,8 +548,28 @@ fn not_implemented(what: &str, milestone: &str) -> Result<()> {
     )))
 }
 
-/// `job-status <hash>`：查询 MVSEP 任务状态与输出文件。
-async fn run_job_status(id: &str, api_key: Option<String>) -> Result<()> {
+/// `job-status <hash>`：查询任务状态（MVSEP hash 或 asep-server 任务 id）。
+async fn run_job_status(
+    id: &str,
+    api_key: Option<String>,
+    server_url: Option<String>,
+    auth_token: Option<String>,
+) -> Result<()> {
+    if let Some(url) = server_url {
+        let client = ServerClient::new(&url, auth_token)?;
+        let st = client.status(id).await?;
+        println!("Task {id}");
+        println!("status: {}", st.status);
+        println!("progress: {:.1}%", st.progress * 100.0);
+        println!("description: {}", st.message);
+        for f in &st.files {
+            println!("  - {} ({})", f.name, f.size);
+        }
+        if let Some(e) = &st.error {
+            println!("error: {e}");
+        }
+        return Ok(());
+    }
     let mut cfg = Config::default();
     if let Some(k) = api_key {
         cfg.mvsep.api_key = Some(k);
@@ -459,7 +601,7 @@ async fn run_job_status(id: &str, api_key: Option<String>) -> Result<()> {
     }
     for f in &st.files {
         println!(
-            "  - {}（{}）: {}",
+            "  - {} ({}): {}",
             f.stem,
             f.size.clone().unwrap_or_else(|| "?".to_string()),
             f.url
@@ -488,9 +630,14 @@ async fn run_models(
     backend: BackendArg,
     models_file: Option<PathBuf>,
     models_url: Option<String>,
+    server_url: String,
+    auth_token: Option<String>,
 ) -> Result<()> {
     if backend == BackendArg::Mvsep {
         return run_models_mvsep().await;
+    }
+    if backend == BackendArg::Server {
+        return run_models_server(&server_url, auth_token).await;
     }
     let cfg = build_config(models_file, models_url)?;
     let manager = tokio::task::spawn_blocking(move || {
@@ -499,9 +646,15 @@ async fn run_models(
     .await
     .map_err(|e| Error::Other(format!("model list load failed: {e}")))??;
     let list = manager.list();
+    print_model_list(list);
+    Ok(())
+}
+
+/// 打印模型清单（本地 manifest / server API 通用）。
+fn print_model_list(list: &audio_separator_core::model::ModelList) {
     if list.models.is_empty() {
         println!("model list is empty (models.list not configured or list has no models)");
-        return Ok(());
+        return;
     }
     println!("model list v{} ({} models)", list.version, list.models.len());
     for m in &list.models {
@@ -526,6 +679,15 @@ async fn run_models(
             m.name, m.architecture, m.engine, stems, src, mvsep
         );
     }
+}
+
+/// `models --backend server`：从 asep-server API 拉取本地清单。
+async fn run_models_server(server_url: &str, auth_token: Option<String>) -> Result<()> {
+    let client = ServerClient::new(server_url, auth_token)?;
+    let v = client.models("local").await?;
+    let list: audio_separator_core::model::ModelList = serde_json::from_value(v)
+        .map_err(|e| Error::Other(format!("invalid server model list: {e}")))?;
+    print_model_list(&list);
     Ok(())
 }
 
