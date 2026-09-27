@@ -44,7 +44,10 @@ impl LocalSeparator {
     /// 按配置构建本地后端（加载模型清单、确定缓存目录）。
     pub fn new(config: &Config) -> Result<Self> {
         Ok(Self {
-            manager: Arc::new(ModelManager::load(&config.models)?),
+            manager: Arc::new(ModelManager::load(
+                &config.models,
+                config.network.proxy.as_deref(),
+            )?),
         })
     }
 }

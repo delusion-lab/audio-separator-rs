@@ -17,6 +17,7 @@ use crate::job::ProgressEvent;
 use crate::model::{ModelRef, OutputFormat};
 
 pub mod local;
+pub mod mvsep;
 
 /// 输入音频来源。
 #[derive(Debug, Clone)]

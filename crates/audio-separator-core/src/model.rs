@@ -132,6 +132,19 @@ pub struct ModelEntry {
     /// 架构专属参数（schema 校验在架构注册表完成）。
     #[serde(default)]
     pub params: serde_json::Value,
+    /// MVSEP 云后端映射（可选）：按名引用时，MVSEP 后端据此提交 sep_type 与附加选项。
+    #[serde(default)]
+    pub mvsep: Option<MvsepEntry>,
+}
+
+/// MVSEP 云后端条目映射：平台分离类型 ID 与附加选项。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MvsepEntry {
+    /// 平台分离类型 ID（`/api/app/algorithms` 的 `render_id`，如 40=BS Roformer 2-stem）。
+    pub sep_type: u64,
+    /// 平台附加选项（`add_opt1/2/3` 键值，如 `{"add_opt1": "81"}`）；未列出的用平台默认。
+    #[serde(default)]
+    pub add_opts: serde_json::Value,
 }
 
 /// 模型清单：本地 JSON 文件或远程 URL 均可，条目集中维护。

@@ -11,7 +11,7 @@ fn main() {
         list: Some(ModelListSource::Path("models.json".into())),
         cache_dir: None,
     };
-    let mgr = ModelManager::load(&cfg).unwrap();
+    let mgr = ModelManager::load(&cfg, None).unwrap();
     let names = [
         "model_bs_roformer_ep_368_sdr_12.9628",
         "model_mel_band_roformer_ep_3005_sdr_11.4360",

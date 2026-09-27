@@ -7,7 +7,6 @@
 
 use std::path::{Path, PathBuf};
 
-use reqwest::blocking::Client;
 use sha2::{Digest, Sha256};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -37,11 +36,12 @@ pub struct ResolvedModel {
 pub struct ModelManager {
     list: ModelList,
     cache_dir: PathBuf,
+    proxy: Option<String>,
 }
 
 impl ModelManager {
     /// 按配置加载模型清单并确定缓存目录。
-    pub fn load(models: &ModelsConfig) -> Result<Self> {
+    pub fn load(models: &ModelsConfig, proxy: Option<&str>) -> Result<Self> {
         let cache_dir = match &models.cache_dir {
             Some(p) => p.clone(),
             None => dirs::cache_dir()
@@ -54,14 +54,18 @@ impl ModelManager {
         std::fs::create_dir_all(&cache_dir)?;
 
         let list = match &models.list {
-            Some(ModelListSource::Url(url)) => fetch_json(url)?,
+            Some(ModelListSource::Url(url)) => fetch_json(url, proxy)?,
             Some(ModelListSource::Path(p)) => load_json_file(p)?,
             None => ModelList {
                 version: 0,
                 models: Vec::new(),
             },
         };
-        Ok(Self { list, cache_dir })
+        Ok(Self {
+            list,
+            cache_dir,
+            proxy: proxy.map(|s| s.to_string()),
+        })
     }
 
     /// 当前加载的模型清单（查询用）。
@@ -170,7 +174,7 @@ impl ModelManager {
         }
         let tmp = dest.with_extension("part");
 
-        let mut resp = Client::new()
+        let mut resp = blocking_client(self.proxy.as_deref())?
             .get(url)
             .send()
             .map_err(|e| Error::Network(format!("下载模型失败 {url}: {e}")))?;
@@ -261,9 +265,9 @@ impl ModelManager {
     }
 }
 
-/// 从远程 URL 获取模型清单（临时 blocking Client）。
-fn fetch_json(url: &str) -> Result<ModelList> {
-    let resp = Client::new()
+/// 从远程 URL 获取模型清单（临时 blocking Client，走代理）。
+fn fetch_json(url: &str, proxy: Option<&str>) -> Result<ModelList> {
+    let resp = blocking_client(proxy)?
         .get(url)
         .send()
         .map_err(|e| Error::Network(format!("获取模型清单失败 {url}: {e}")))?;
@@ -277,6 +281,35 @@ fn fetch_json(url: &str) -> Result<ModelList> {
         .text()
         .map_err(|e| Error::Network(format!("读取模型清单失败 {url}: {e}")))?;
     serde_json::from_str(&text).map_err(Error::Json)
+}
+
+/// 构建 blocking Client：显式代理优先，其次环境变量 ALL_PROXY/HTTPS_PROXY/HTTP_PROXY。
+fn blocking_client(proxy: Option<&str>) -> Result<reqwest::blocking::Client> {
+    let mut builder = reqwest::blocking::Client::builder()
+        .user_agent("audio-separator-rs/0.1");
+    if let Some(p) = resolve_proxy(proxy) {
+        let proxy = reqwest::Proxy::all(&p)
+            .map_err(|e| Error::Config(format!("代理配置无效 {p}: {e}")))?;
+        builder = builder.proxy(proxy);
+    }
+    builder.build().map_err(|e| Error::Network(format!("构建 HTTP 客户端失败: {e}")))
+}
+
+/// 代理解析：显式配置 > ALL_PROXY > HTTPS_PROXY > HTTP_PROXY。
+pub(crate) fn resolve_proxy(explicit: Option<&str>) -> Option<String> {
+    if let Some(p) = explicit {
+        if !p.trim().is_empty() {
+            return Some(p.to_string());
+        }
+    }
+    for var in ["ALL_PROXY", "all_proxy", "HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"] {
+        if let Ok(v) = std::env::var(var) {
+            if !v.trim().is_empty() {
+                return Some(v);
+            }
+        }
+    }
+    None
 }
 
 /// 从本地 JSON 文件加载模型清单。

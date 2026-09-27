@@ -17,4 +17,4 @@ pub use backend::{Input, SeparationRequest, SeparationResult, Separator};
 pub use config::{BackendKind, Config, MvsepRegion};
 pub use error::{Error, Result};
 pub use job::{JobState, ProgressEvent};
-pub use model::{ModelEntry, ModelList, ModelRef, OutputFormat};
+pub use model::{MvsepEntry, ModelEntry, ModelList, ModelRef, OutputFormat};

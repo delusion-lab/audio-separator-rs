@@ -75,6 +75,8 @@ pub struct MvsepConfig {
     pub poll_interval_secs: u64,
     /// 轮询超时（秒）。
     pub poll_timeout_secs: u64,
+    /// 处理完成回调 URL（可选，透传平台 webhook）。
+    pub webhook_url: Option<String>,
 }
 
 impl Default for MvsepConfig {
@@ -85,8 +87,18 @@ impl Default for MvsepConfig {
             concurrency: 1,
             poll_interval_secs: 5,
             poll_timeout_secs: 3600,
+            webhook_url: None,
         }
     }
+}
+
+/// 网络配置（统一走用户 HTTP 代理）。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct NetworkConfig {
+    /// HTTP(S) 代理地址（如 `http://127.0.0.1:12355`）。
+    /// 为空时回退环境变量 `ALL_PROXY` / `HTTPS_PROXY` / `HTTP_PROXY`。
+    pub proxy: Option<String>,
 }
 
 /// 服务端配置（CLI `serve` 与 server crate 共用）。
@@ -139,6 +151,8 @@ pub struct Config {
     pub mvsep: MvsepConfig,
     /// 服务端配置。
     pub server: ServerConfig,
+    /// 网络配置（代理）。
+    pub network: NetworkConfig,
     /// 输出配置。
     pub output: OutputConfig,
 }
@@ -150,6 +164,7 @@ impl Default for Config {
             models: ModelsConfig::default(),
             mvsep: MvsepConfig::default(),
             server: ServerConfig::default(),
+            network: NetworkConfig::default(),
             output: OutputConfig::default(),
         }
     }

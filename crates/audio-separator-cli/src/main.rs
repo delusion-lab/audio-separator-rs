@@ -5,12 +5,14 @@
 //! - `job-status`：任务状态查询（M3 交付）
 //! - `serve`：HTTP 服务（M4 交付）
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use audio_separator_core::backend::local::model_manage::ModelManager;
 use audio_separator_core::backend::local::LocalSeparator;
+use audio_separator_core::backend::mvsep::{MvsepClient, MvsepSeparator};
 use audio_separator_core::backend::{Input, SeparationRequest, Separator};
-use audio_separator_core::config::{Config, ModelListSource};
+use audio_separator_core::config::{Config, ModelListSource, MvsepRegion};
 use audio_separator_core::error::{Error, Result};
 use audio_separator_core::job::ProgressEvent;
 use audio_separator_core::model::{ModelRef, OutputFormat};
@@ -117,6 +119,22 @@ struct SeparateArgs {
     #[arg(long)]
     concurrency: Option<usize>,
 
+    /// MVSEP 附加选项 add_opt1（backend=mvsep 时透传，覆盖清单条目映射）。
+    #[arg(long)]
+    add_opt1: Option<String>,
+
+    /// MVSEP 附加选项 add_opt2。
+    #[arg(long)]
+    add_opt2: Option<String>,
+
+    /// MVSEP 附加选项 add_opt3。
+    #[arg(long)]
+    add_opt3: Option<String>,
+
+    /// MVSEP 完成回调 URL（处理后平台 POST 结果，免轮询）。
+    #[arg(long)]
+    webhook_url: Option<String>,
+
     /// 覆盖模型清单源：本地 JSON 路径。
     #[arg(long)]
     models_file: Option<PathBuf>,
@@ -179,6 +197,17 @@ enum RegionArg {
     Sg,
 }
 
+impl From<RegionArg> for MvsepRegion {
+    fn from(r: RegionArg) -> Self {
+        match r {
+            RegionArg::Auto => MvsepRegion::Auto,
+            RegionArg::De => MvsepRegion::De,
+            RegionArg::De2 => MvsepRegion::De2,
+            RegionArg::Sg => MvsepRegion::Sg,
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
@@ -194,7 +223,7 @@ async fn main() {
             models_file,
             models_url,
         } => run_model_info(&model, models_file, models_url).await,
-        Command::JobStatus { .. } => not_implemented("job-status", "M3"),
+        Command::JobStatus { id, api_key } => run_job_status(&id, api_key).await,
         Command::Serve(_) => not_implemented("serve", "M4"),
     };
     if let Err(e) = result {
@@ -203,7 +232,7 @@ async fn main() {
     }
 }
 
-/// `separate` 执行：解析模型三态、构建本地后端、订阅进度、等待完成。
+/// `separate` 执行：解析模型三态、构建后端（本地 / MVSEP）、订阅进度、等待完成。
 async fn run_separate(args: SeparateArgs) -> Result<()> {
     // 配置：默认值 ← CLI 覆盖
     let mut cfg = match &args.config {
@@ -216,9 +245,30 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
     if let Some(u) = &args.models_url {
         cfg.models.list = Some(ModelListSource::Url(u.clone()));
     }
+    if cfg.models.list.is_none() {
+        // 兜底：未指定清单源且工作目录存在 models.json 时自动加载（本地开发 / 独立清单仓库 checkout）
+        let local = Path::new("models.json");
+        if local.exists() {
+            cfg.models.list = Some(ModelListSource::Path(local.to_path_buf()));
+        }
+    }
+    if let Some(k) = &args.api_key {
+        cfg.mvsep.api_key = Some(k.clone());
+    }
+    cfg.mvsep.region = args.region.into();
+    if let Some(t) = args.poll_timeout {
+        cfg.mvsep.poll_timeout_secs = t;
+    }
+    if let Some(c) = args.concurrency {
+        cfg.mvsep.concurrency = c;
+    }
 
     let model = parse_model_ref(&args.model, args.arch.clone())?;
-    let input = Input::Path(PathBuf::from(&args.input));
+    let input = if args.input.starts_with("http://") || args.input.starts_with("https://") {
+        Input::Url(args.input.clone())
+    } else {
+        Input::Path(PathBuf::from(&args.input))
+    };
     let req = SeparationRequest {
         input,
         model,
@@ -235,29 +285,55 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
         }
     });
 
-    let separator = match args.backend {
+    let separator: Box<dyn Separator> = match args.backend {
         BackendArg::Local => {
             // ModelManager::load 可能访问网络/文件系统且内部使用 blocking Client，
             // 须在阻塞线程执行，避免阻塞操作跨入 tokio 异步上下文。
             let cfg = cfg.clone();
-            tokio::task::spawn_blocking(move || LocalSeparator::new(&cfg))
-                .await
-                .map_err(|e| Error::Other(format!("本地后端初始化异常: {e}")))?
+            Box::new(
+                tokio::task::spawn_blocking(move || LocalSeparator::new(&cfg))
+                    .await
+                    .map_err(|e| Error::Other(format!("本地后端初始化异常: {e}")))??,
+            )
         }
         BackendArg::Mvsep => {
-            return Err(Error::Backend(
-                "MVSEP 后端计划于 M3 交付（见 PLAN.md §9）".to_string(),
-            ))
+            // 加载清单（manifest 的 mvsep 映射用于按名引用）；网络型清单在阻塞线程拉取。
+            let cfg_clone = cfg.clone();
+            let manager = tokio::task::spawn_blocking(move || {
+                ModelManager::load(&cfg_clone.models, cfg_clone.network.proxy.as_deref())
+            })
+            .await
+            .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
+            let mut add_opts = BTreeMap::new();
+            if let Some(v) = &args.add_opt1 {
+                add_opts.insert("add_opt1".to_string(), v.clone());
+            }
+            if let Some(v) = &args.add_opt2 {
+                add_opts.insert("add_opt2".to_string(), v.clone());
+            }
+            if let Some(v) = &args.add_opt3 {
+                add_opts.insert("add_opt3".to_string(), v.clone());
+            }
+            Box::new(MvsepSeparator::new(
+                &cfg,
+                add_opts,
+                args.webhook_url.clone(),
+                Some(manager.list().clone()),
+            )?)
         }
-    }?;
+    };
 
     let result = separator.separate(req, Some(tx), None).await?;
     let _ = consumer.await;
 
     println!();
     println!(
-        "分离完成（{:.1}s，后端 local）：",
-        result.elapsed.as_secs_f64()
+        "分离完成（{:.1}s，后端 {}）：",
+        result.elapsed.as_secs_f64(),
+        match result.backend {
+            audio_separator_core::config::BackendKind::Local => "local",
+            audio_separator_core::config::BackendKind::Mvsep => "mvsep",
+        }
     );
     for (stem, path) in &result.stems {
         println!("  {stem}: {}", path.display());
@@ -333,6 +409,51 @@ fn not_implemented(what: &str, milestone: &str) -> Result<()> {
     )))
 }
 
+/// `job-status <hash>`：查询 MVSEP 任务状态与输出文件。
+async fn run_job_status(id: &str, api_key: Option<String>) -> Result<()> {
+    let mut cfg = Config::default();
+    if let Some(k) = api_key {
+        cfg.mvsep.api_key = Some(k);
+    }
+    let client = MvsepClient::new(&cfg.mvsep, cfg.network.proxy.as_deref())?;
+    let st = client.get(id).await?;
+    println!("任务 {id}");
+    println!(
+        "状态: {}",
+        match st.status {
+            audio_separator_core::backend::mvsep::MvsepStatus::Done => "done",
+            audio_separator_core::backend::mvsep::MvsepStatus::Waiting => "waiting",
+            audio_separator_core::backend::mvsep::MvsepStatus::Processing => "processing",
+            audio_separator_core::backend::mvsep::MvsepStatus::Distributing => "distributing",
+            audio_separator_core::backend::mvsep::MvsepStatus::Merging => "merging",
+            audio_separator_core::backend::mvsep::MvsepStatus::Failed => "failed",
+            audio_separator_core::backend::mvsep::MvsepStatus::NotFound => "not_found",
+        }
+    );
+    if let Some(a) = &st.algorithm {
+        println!("算法: {a}");
+    }
+    if let Some(m) = &st.message {
+        println!("说明: {m}");
+    }
+    match (st.queue_count, st.current_order) {
+        (Some(q), Some(o)) => println!("排队: {o} 号 / 共 {q} 个待处理"),
+        _ => {}
+    }
+    for f in &st.files {
+        println!(
+            "  - {}（{}）: {}",
+            f.stem,
+            f.size.clone().unwrap_or_else(|| "?".to_string()),
+            f.url
+        );
+    }
+    if st.files.is_empty() && matches!(st.status, audio_separator_core::backend::mvsep::MvsepStatus::Done) {
+        println!("（无输出文件）");
+    }
+    Ok(())
+}
+
 /// 从 CLI 覆盖项构建配置（config 文件 → 默认 → CLI 覆盖）。
 fn build_config(models_file: Option<PathBuf>, models_url: Option<String>) -> Result<Config> {
     let mut cfg = Config::default();
@@ -345,21 +466,21 @@ fn build_config(models_file: Option<PathBuf>, models_url: Option<String>) -> Res
     Ok(cfg)
 }
 
-/// `models`：列出清单中的可用模型。
+/// `models`：列出可用模型（本地=manifest / mvsep=平台算法目录）。
 async fn run_models(
     backend: BackendArg,
     models_file: Option<PathBuf>,
     models_url: Option<String>,
 ) -> Result<()> {
-    if backend != BackendArg::Local {
-        return Err(Error::Backend(
-            "MVSEP 模型列表计划于 M3 交付".to_string(),
-        ));
+    if backend == BackendArg::Mvsep {
+        return run_models_mvsep().await;
     }
     let cfg = build_config(models_file, models_url)?;
-    let manager = tokio::task::spawn_blocking(move || ModelManager::load(&cfg.models))
-        .await
-        .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
+    let manager = tokio::task::spawn_blocking(move || {
+        ModelManager::load(&cfg.models, cfg.network.proxy.as_deref())
+    })
+    .await
+    .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
     let list = manager.list();
     if list.models.is_empty() {
         println!("清单为空（未配置 models.list 或清单无模型）");
@@ -368,6 +489,11 @@ async fn run_models(
     println!("模型清单 v{}（{} 个模型）", list.version, list.models.len());
     for m in &list.models {
         let stems = m.stems.join("、");
+        let mvsep = m
+            .mvsep
+            .as_ref()
+            .map(|mv| format!(" mvsep:{}", mv.sep_type))
+            .unwrap_or_default();
         let src = m
             .local_path
             .as_ref()
@@ -379,9 +505,36 @@ async fn run_models(
             })
             .unwrap_or_else(|| "无来源".to_string());
         println!(
-            "- {} [{} / {}] 分轨: {} | {}",
-            m.name, m.architecture, m.engine, stems, src
+            "- {} [{} / {}] 分轨: {} | {}{}",
+            m.name, m.architecture, m.engine, stems, src, mvsep
         );
+    }
+    Ok(())
+}
+
+/// `models --backend mvsep`：拉取平台算法目录（无需 API Key）。
+async fn run_models_mvsep() -> Result<()> {
+    let cfg = Config::default();
+    let client = MvsepClient::new(&cfg.mvsep, cfg.network.proxy.as_deref())?;
+    let algos = client.algorithms().await?;
+    println!("MVSEP 算法目录（{} 项，single_upload）：", algos.len());
+    let mut grouped: BTreeMap<String, Vec<(u64, String)>> = BTreeMap::new();
+    for a in &algos {
+        let group = a
+            .group
+            .as_ref()
+            .and_then(|g| g.name.clone())
+            .unwrap_or_else(|| "其他".to_string());
+        grouped
+            .entry(group)
+            .or_default()
+            .push((a.render_id, a.name.clone()));
+    }
+    for (group, items) in grouped {
+        println!("\n[{group}]");
+        for (id, name) in items {
+            println!("  - {id}: {name}");
+        }
     }
     Ok(())
 }
@@ -393,9 +546,11 @@ async fn run_model_info(
     models_url: Option<String>,
 ) -> Result<()> {
     let cfg = build_config(models_file, models_url)?;
-    let manager = tokio::task::spawn_blocking(move || ModelManager::load(&cfg.models))
-        .await
-        .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
+    let manager = tokio::task::spawn_blocking(move || {
+        ModelManager::load(&cfg.models, cfg.network.proxy.as_deref())
+    })
+    .await
+    .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
     let entry = manager
         .list()
         .get(model)
