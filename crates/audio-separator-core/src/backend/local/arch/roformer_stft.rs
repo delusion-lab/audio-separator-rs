@@ -1,8 +1,10 @@
-//! BS-RoFormer 专属 STFT/iSTFT（参考 uvr_roformer 约定）。
+//! BS-RoFormer 家族专属 STFT/iSTFT（参考 uvr_roformer 约定）。
 //!
 //! - 前向：对称 Hann 窗、reflect padding、**f64 精度**（避免 FFT 舍入主导安静频带），
 //!   输出 bin-major 布局 `values[bin * frames + frame]`（含 Nyquist）。
 //! - 逆向：Hermitian 镜像填充 → 逆 FFT（÷N）→ 加窗 overlap-add → 按窗平方和归一化。
+//!
+//! HOP 按架构参数化：bs_roformer / mel_band_roformer 用 441，bs_polarformer 用 512。
 
 use std::sync::Arc;
 
@@ -10,7 +12,6 @@ use crate::error::{Error, Result};
 use rustfft::{Fft, FftPlanner, num_complex::Complex32, num_complex::Complex64};
 
 pub const FFT: usize = 2048;
-pub const HOP: usize = 441;
 
 /// f64 精度前向变换（每声道）。
 pub struct PreciseStft {
@@ -18,10 +19,11 @@ pub struct PreciseStft {
     window: Vec<f64>,
     buffer: Vec<Complex64>,
     scratch: Vec<Complex64>,
+    hop: usize,
 }
 
 impl PreciseStft {
-    pub fn new() -> Result<Self> {
+    pub fn new(hop: usize) -> Result<Self> {
         let fft = FftPlanner::<f64>::new().plan_fft_forward(FFT);
         let scratch_len = fft.get_inplace_scratch_len();
         Ok(Self {
@@ -31,18 +33,19 @@ impl PreciseStft {
             window: (0..FFT)
                 .map(|i| 0.5 - 0.5 * (std::f64::consts::TAU * i as f64 / FFT as f64).cos())
                 .collect(),
+            hop,
         })
     }
 
-    /// 输入长度 `len >= HOP`（frames = len/HOP + 1）。返回 bin-major 复数谱。
+    /// 输入长度 `len >= hop`（frames = len/hop + 1）。返回 bin-major 复数谱。
     pub fn forward(&mut self, audio: &[f32]) -> Result<Vec<Complex32>> {
         let pad = FFT / 2;
-        let frames = audio.len() / HOP + 1;
+        let frames = audio.len() / self.hop + 1;
         let bins = pad + 1;
         let mut values = vec![Complex32::default(); bins * frames];
         for frame in 0..frames {
             for i in 0..FFT {
-                let padded = frame * HOP + i;
+                let padded = frame * self.hop + i;
                 let index = if padded < pad {
                     pad - padded
                 } else {
@@ -65,16 +68,17 @@ impl PreciseStft {
     }
 }
 
-/// f32 逆向变换（能量归一化），输出长度为 `(frames - 1) * HOP`。
+/// f32 逆向变换（能量归一化），输出长度为 `(frames - 1) * hop`。
 pub struct Stft {
     inverse: Arc<dyn Fft<f32>>,
     window: Vec<f32>,
     buffer: Vec<Complex32>,
     scratch: Vec<Complex32>,
+    hop: usize,
 }
 
 impl Stft {
-    pub fn new() -> Result<Self> {
+    pub fn new(hop: usize) -> Result<Self> {
         let inverse = FftPlanner::<f32>::new().plan_fft_inverse(FFT);
         let scratch_len = inverse.get_inplace_scratch_len();
         Ok(Self {
@@ -84,6 +88,7 @@ impl Stft {
             window: (0..FFT)
                 .map(|i| (0.5 - 0.5 * (std::f64::consts::TAU * i as f64 / FFT as f64).cos()) as f32)
                 .collect(),
+            hop,
         })
     }
 
@@ -93,7 +98,8 @@ impl Stft {
         if spectrum.len() != bins * frames {
             return Err(Error::Model("Roformer 谱形状不符".to_string()));
         }
-        let natural = (frames - 1) * HOP;
+        let hop = self.hop;
+        let natural = (frames - 1) * hop;
         let covered = natural + FFT;
         let mut wave = vec![0.0f32; covered];
         let mut energy = vec![0.0f32; covered];
@@ -106,7 +112,7 @@ impl Stft {
             }
             self.inverse.process_with_scratch(&mut self.buffer, &mut self.scratch);
             for i in 0..FFT {
-                let index = frame * HOP + i;
+                let index = frame * hop + i;
                 wave[index] += self.buffer[i].re * (1.0 / FFT as f32) * self.window[i];
                 energy[index] += self.window[i] * self.window[i];
             }
@@ -129,16 +135,16 @@ mod tests {
 
     #[test]
     fn roundtrip_reconstructs_signal() {
-        let mut forward = PreciseStft::new().unwrap();
-        let mut inverse = Stft::new().unwrap();
-        let len = HOP * 20; // 20 帧
+        let mut forward = PreciseStft::new(441).unwrap();
+        let mut inverse = Stft::new(441).unwrap();
+        let len = 441 * 20; // 20 帧
         let audio: Vec<f32> = (0..len)
             .map(|i| (i as f32 * 0.05).sin() * 0.5)
             .collect();
         let spec = forward.forward(&audio).unwrap();
-        let frames = len / HOP + 1;
+        let frames = len / 441 + 1;
         let out = inverse.inverse(&spec, frames).unwrap();
-        assert_eq!(out.len(), len / HOP * HOP);
+        assert_eq!(out.len(), len / 441 * 441);
         // 重建质量：中间段相对误差 < 1%
         let start = FFT;
         let end = out.len() - FFT;

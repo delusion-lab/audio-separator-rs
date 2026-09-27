@@ -196,7 +196,7 @@ pub fn separate_mdx(
 
         // STFT → [ch][frames][freq] 复数（freq = n_fft/2+1，含 Nyquist bin）
         let spec = stft(&seg_samples, CH, params.n_fft, params.hop)?;
-        let freq = spec[0][0].len();
+        let _freq = spec[0][0].len();
         let frames = spec[0].len();
         let dim_f = params.dim_f; // 模型输入频率 bins（= n_fft/2，不含 Nyquist）
 

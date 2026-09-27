@@ -17,7 +17,8 @@ use crate::error::{Error, Result};
 
 use super::bs_roformer::{linear_forward, rms_norm, rotate, Safetensors};
 use super::mel::{build_mel_bands, N_MELS};
-use super::roformer_stft::{FFT, HOP, PreciseStft, Stft};
+use super::roformer_stft::{FFT, PreciseStft, Stft};
+pub const HOP: usize = 441;
 
 pub const DIM: usize = 384;
 pub const HEADS: usize = 8;
@@ -351,7 +352,7 @@ impl MelBandRoformer {
         let (time_batch, frequency_batch) = self.batch_sizes();
 
         // 1) f64 STFT 每声道
-        let mut prec = PreciseStft::new()?;
+        let mut prec = PreciseStft::new(HOP)?;
         let mut spectra = Vec::with_capacity(2);
         for channel in audio.chunks_exact(samples) {
             let spec = prec.forward(channel)?;
@@ -439,7 +440,7 @@ impl MelBandRoformer {
         }
         // 平均（每 freq 被覆盖的 band 数）+ 乘原谱 + zero_dc
         let denom = &self.mel.num_bands_per_freq;
-        let mut stft = Stft::new()?;
+        let mut stft = Stft::new(HOP)?;
         let mut out_masked: Vec<Vec<Complex32>> = (0..2)
             .map(|_| vec![Complex32::default(); bins * frames])
             .collect();

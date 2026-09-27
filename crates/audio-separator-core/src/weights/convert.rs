@@ -22,9 +22,15 @@ pub fn convert_ckpt_to_safetensors(ckpt: &Path, out: &Path) -> Result<()> {
             .ok_or_else(|| Error::Model(format!("{name} 缺少 storage")))?;
         let raw = archive.read_storage(&storage.id)?;
         let bytes = materialize(&raw, rec, storage.dtype, big_endian)?;
+        // fp16 权重在 materialize 内已转 fp32（统一 safetensors 为 F32）。
+        let dtype = if storage.dtype == Dtype::F16 {
+            Dtype::F32
+        } else {
+            storage.dtype
+        };
         tensors.push(TensorData {
             name: name.clone(),
-            dtype: storage.dtype,
+            dtype,
             shape: rec.size.clone(),
             bytes,
         });
@@ -81,7 +87,45 @@ fn materialize(storage: &[u8], rec: &TensorRec, dtype: Dtype, big_endian: bool) 
             chunk.reverse();
         }
     }
+    // fp16 权重（如 bs_polarformer_float16）：物化后转 fp32，统一 safetensors 为 F32。
+    if dtype == Dtype::F16 {
+        return Ok(half_bytes_to_f32(&out));
+    }
     Ok(out)
+}
+
+/// IEEE 754 half（2 字节小端）序列 → f32（4 字节小端）序列。
+fn half_bytes_to_f32(src: &[u8]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(src.len() * 2);
+    for chunk in src.chunks_exact(2) {
+        let h = u16::from_le_bytes([chunk[0], chunk[1]]);
+        out.extend_from_slice(&half_to_f32(h).to_le_bytes());
+    }
+    out
+}
+
+fn half_to_f32(h: u16) -> f32 {
+    let sign = ((h >> 15) & 1) as u32;
+    let exp = ((h >> 10) & 0x1f) as u32;
+    let frac = (h & 0x3ff) as u32;
+    if exp == 0 {
+        if frac == 0 {
+            f32::from_bits(sign << 31) // ±0
+        } else {
+            // 次正规：1.f × 2^-14，规格化后指数-15
+            let mut e = -14i32;
+            let mut m = frac;
+            while (m & 0x400) == 0 {
+                m <<= 1;
+                e -= 1;
+            }
+            f32::from_bits((sign << 31) | (((e + 127) as u32) << 23) | ((m & 0x3ff) << 13))
+        }
+    } else if exp == 31 {
+        f32::from_bits((sign << 31) | 0x7f80_0000 | (frac << 13)) // inf / nan
+    } else {
+        f32::from_bits((sign << 31) | ((exp + 127 - 15) << 23) | (frac << 13))
+    }
 }
 
 fn is_row_major_contiguous(size: &[u64], stride: &[u64]) -> bool {
@@ -160,5 +204,34 @@ mod tests {
             .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
             .collect();
         assert_eq!(vals, vec![2, 3]);
+    }
+
+    #[test]
+    fn half_to_f32_values() {
+        assert_eq!(half_to_f32(0x0000), 0.0);
+        assert_eq!(half_to_f32(0x8000), -0.0);
+        assert_eq!(half_to_f32(0x3C00), 1.0); // 1.0
+        assert_eq!(half_to_f32(0xC000), -2.0); // -2
+        assert_eq!(half_to_f32(0x0001).to_bits(), 0x33800000); // 最小次正规 2^-24
+        assert_eq!(half_to_f32(0x7C00), f32::INFINITY); // +inf
+        assert!(half_to_f32(0x7E00).is_nan()); // nan
+        // 1.5 = 0x3E00
+        assert_eq!(half_to_f32(0x3E00), 1.5);
+    }
+
+    #[test]
+    fn half_bytes_conversion() {
+        // [1.0, -2.0, 0.5]
+        let mut src = Vec::new();
+        for h in [0x3C00u16, 0xC000u16, 0x3800u16] {
+            src.extend_from_slice(&h.to_le_bytes());
+        }
+        let out = half_bytes_to_f32(&src);
+        assert_eq!(out.len(), 12);
+        let vals: Vec<f32> = out
+            .chunks_exact(4)
+            .map(|c| f32::from_le_bytes(c.try_into().unwrap()))
+            .collect();
+        assert_eq!(vals, vec![1.0, -2.0, 0.5]);
     }
 }

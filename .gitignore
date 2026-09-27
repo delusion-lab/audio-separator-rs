@@ -23,6 +23,9 @@ test-assets/*.wav
 test-assets/*.safetensors
 test-assets/*.ckpt
 
+# torch 对照诊断数据（npy 体积大不入库；py 脚本保留）
+test-assets/*.npy
+
 # Runtime artifacts
 *.tmp
 convert.log

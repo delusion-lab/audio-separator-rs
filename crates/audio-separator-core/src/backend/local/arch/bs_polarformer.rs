@@ -1,11 +1,15 @@
-//! BS-RoFormer 1296（candle CPU FP32 前向）。
+//! BS-PolarFormer（candle CPU FP32 前向）。
 //!
-//! 数学与权重名映射逐项对照 uvr_roformer（IronHpc/UVR-rs，Burn 参考实现）：
-//! 62 频带、DIM=512 / HEADS=8 / HEAD_DIM=64 / DEPTH=12、FFT=2048 / HOP=441、
-//! 相邻对 RoPE（非 rotate_half）、RMSNorm 变体（÷sqrt(sum(x²))·√dim·γ）、erf GELU。
-//! 权重来自 M2-A 转换器产出的 safetensors（ckpt → safetensors，699 个 tensor）。
+//! 数学与权重名映射逐项对照 hunterFormsBS BandSplitRotator 0.3.1 +
+//! PoPE-pytorch（lucidrains）：62 频带、DIM=256 / HEADS=8 / HEAD_DIM=64 / DEPTH=12、
+//! FFT=2048 / HOP=512、**PoPE（Polar Coordinate Positional Embedding）替代 RoPE**：
+//! softplus 幅度 → 极坐标旋转（q 用频相位、k 用频相位+可学习 key bias，clamp[-2π,0]）
+//! → dim 翻倍拼接；mask_estimator_depth 等效 1（两层 Linear + Tanh + GLU，
+//! 与权重 `to_freqs.{b}.0.{0,2}` 一致——hunterFormsBS 文档说明早期权重
+//! "mask_estimator_depth: 2" 实际存储两层）；无每层输出 norm（norm_output=False）；
+//! 有 final_norm。权重来自 M2-D 转换器（float16 ckpt → f32 safetensors，723 个 tensor）。
 //!
-//! 输入：立体声窗口 `2*samples`（交错），samples ∈ (1024, 352800]。
+//! 输入：立体声窗口 `2*samples`（交错），samples ∈ (1024, 352768] 且被 512 整除。
 //! 输出：`2 * (samples/HOP*HOP)`，前一半左声道、后一半右声道（与参考一致）。
 
 use std::collections::HashMap;
@@ -19,16 +23,17 @@ use rustfft::num_complex::Complex32;
 use crate::error::{Error, Result};
 
 use super::roformer_stft::{FFT, PreciseStft, Stft};
-pub const HOP: usize = 441;
 
-pub const DIM: usize = 512;
+pub const DIM: usize = 256;
 pub const HEADS: usize = 8;
 pub const HEAD_DIM: usize = 64;
 pub const DEPTH: usize = 12;
+pub const HOP: usize = 512;
 pub const SAMPLE_RATE: u32 = 44_100;
-pub const CHUNK: usize = 352_800;
+/// 预测窗口 = 512 * 689（8s，帧数 690，与 bs/mel 同量级；保证 samples/HOP 整除）。
+pub const CHUNK: usize = 352_768;
 
-/// 62 个频带宽度，总和 = 1025 = FFT/2+1。
+/// 62 个频带宽度，总和 = 1025 = FFT/2+1（与 bs_roformer 相同布局）。
 pub const BANDS: [usize; 62] = [
     2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4,
     4, 4, 4, 4, 12, 12, 12, 12, 12, 12, 12, 12, 24, 24, 24, 24, 24, 24, 24, 24, 48, 48, 48, 48, 48,
@@ -36,9 +41,9 @@ pub const BANDS: [usize; 62] = [
 ];
 
 pub struct RoformerOptions {
-    /// 时间注意力每批处理的频带数（uvr 默认 62 全量）。
+    /// 时间注意力每批处理的频带数（默认 62 全量）。
     pub time_batch: usize,
-    /// 频率注意力每批处理的帧数（uvr 默认 301）。
+    /// 频率注意力每批处理的帧数（默认 301）。
     pub frequency_batch: usize,
 }
 
@@ -111,13 +116,26 @@ impl Safetensors {
             .ok_or_else(|| Error::Model(format!("缺少权重: {name}")))
     }
 
-    /// 读取并校验形状，转为 f32 向量（用于 norm/rope 等标量参数）。
+    /// 读取并校验形状，转为 f32 向量（用于 norm/pope 等标量参数）。
     pub(crate) fn vec1(&self, name: &str, expected: usize) -> Result<Vec<f32>> {
         let t = self.tensor(name)?;
         if t.dims() != [expected] {
             return Err(Error::Model(format!("{name}: 形状不符 {:?}", t.dims())));
         }
         let v = t.to_vec1::<f32>()?;
+        if v.iter().any(|x| !x.is_finite()) {
+            return Err(Error::Model(format!("{name}: 权重含非有限值")));
+        }
+        Ok(v)
+    }
+
+    /// 读取二维矩阵参数并转为 f32 向量（pope bias [heads, dim]）。
+    pub(crate) fn vec2(&self, name: &str, rows: usize, cols: usize) -> Result<Vec<f32>> {
+        let t = self.tensor(name)?;
+        if t.dims() != [rows, cols] {
+            return Err(Error::Model(format!("{name}: 形状不符 {:?}", t.dims())));
+        }
+        let v = t.flatten_all()?.to_vec1::<f32>()?;
         if v.iter().any(|x| !x.is_finite()) {
             return Err(Error::Model(format!("{name}: 权重含非有限值")));
         }
@@ -146,11 +164,7 @@ impl Safetensors {
 }
 
 /// candle_nn 0.9 的 Linear 无 forward，手动实现：x @ W^T + b。
-/// 采用 uvr 默认 Flattened 布局：x 压成 2D [N, in] @ [in, out] 再还原，
-/// 规避 candle 对高维 matmul 的 batch 广播限制。
-/// 性能注：candle CPU matmul（rayon 并行）与 Intel MKL sgemm 实测同级别
-/// （约 85 GFLOPS，本机 16 核），BS-RoFormer 1296 CPU 单窗 ~100s 属模型固有量级，
-/// 参考实现 UVR-rs 同机同配置约 82-88s。故不依赖外部 BLAS。
+/// 与 bs_roformer.rs 的 linear_forward 相同约定（Flattened 布局）。
 #[doc(hidden)]
 pub fn linear_forward(l: &Linear, x: &Tensor) -> Result<Tensor> {
     let w = l.weight().t()?; // [in, out]
@@ -176,9 +190,8 @@ pub fn linear_forward(l: &Linear, x: &Tensor) -> Result<Tensor> {
     }
 }
 
-// ---- 基础算子（对照 uvr roformer/cpu.rs）----
-
 /// RMSNorm 变体：x / sqrt(sum(x²)).clamp_min(1e-12) * sqrt(dim) * γ，作用于最后一维。
+/// 与 bs_roformer.rs 相同约定。
 #[doc(hidden)]
 pub fn rms_norm(x: &Tensor, gamma: &[f32], dim: usize) -> Result<Tensor> {
     let shape = x.shape().clone();
@@ -191,7 +204,6 @@ pub fn rms_norm(x: &Tensor, gamma: &[f32], dim: usize) -> Result<Tensor> {
     debug_assert_eq!(rows * dim, data.len());
     let scale = (dim as f32).sqrt();
     let mut out = vec![0.0f32; data.len()];
-    // 逐行并行（rayon）：行内归约顺序不变，数值与串行一致
     out.par_chunks_mut(dim).enumerate().for_each(|(row, chunk)| {
         let src = &data[row * dim..(row + 1) * dim];
         let mut sum = 0.0f32;
@@ -206,124 +218,190 @@ pub fn rms_norm(x: &Tensor, gamma: &[f32], dim: usize) -> Result<Tensor> {
     Tensor::from_vec(out, shape, x.device()).map_err(|e| Error::Model(format!("rms_norm: {e}")))
 }
 
-/// 相邻对 RoPE：x 布局 [b, heads, seq, dim]，dim 偶数；cos/sin 表 [seq, dim/2]。
-pub(crate) fn rotate(x: &Tensor, cos: &[f32], sin: &[f32], seq: usize) -> Result<Tensor> {
-    let shape = x.shape().clone();
-    let dim = shape.dims()[3];
-    let data = x
-        .flatten_all()
-        .map_err(|e| Error::Model(format!("rotate flatten: {e}")))?
-        .to_vec1::<f32>()
-        .map_err(|e| Error::Model(format!("rotate read: {e}")))?;
-    let half = dim / 2;
-    let mut out = data.clone();
-    // 逐行并行（rayon），cos/sin 表按行只读
-    out.par_chunks_mut(dim).enumerate().for_each(|(row_index, row)| {
-        let offset = row_index % seq * half;
-        for (pair_index, pair) in row.chunks_exact_mut(2).enumerate() {
-            let c = cos[offset + pair_index];
-            let s = sin[offset + pair_index];
-            let even = pair[0];
-            let odd = pair[1];
-            pair[0] = even * c - odd * s;
-            pair[1] = odd * c + even * s;
-        }
-    });
-    Tensor::from_vec(out, shape, x.device()).map_err(|e| Error::Model(format!("rotate: {e}")))
+/// softplus（数值稳定）。
+fn softplus(v: f32) -> f32 {
+    if v <= 0.0 {
+        (v.exp()).ln_1p()
+    } else {
+        v + (-v).exp().ln_1p()
+    }
 }
 
-// ---- 模型结构（对照 uvr roformer.rs）----
+/// PoPE 极坐标旋转：softplus(x) 乘 cos/sin 表 → 拼接 dim 翻倍。
+/// `t` 布局 [b, 1, seq, dim]，`cos/sin` 为 [seq*dim] 平铺（每行 seq 个、每行 dim 列）。
+/// 输出 [b, 1, seq, 2*dim]（与 PoPE_pytorch `apply_pope_to_qk` 的
+/// `[q*qcos, q*qsin] -> (d two)` 拼接一致）。
+fn pope_rotate(t: &Tensor, cos: &[f32], sin: &[f32], seq: usize, dim: usize) -> Result<Tensor> {
+    let shape = t.shape().clone();
+    let data = t
+        .flatten_all()
+        .map_err(|e| Error::Model(format!("pope flatten: {e}")))?
+        .to_vec1::<f32>()
+        .map_err(|e| Error::Model(format!("pope read: {e}")))?;
+    let rows = data.len() / dim;
+    debug_assert_eq!(rows * dim, data.len());
+    let mut out = vec![0.0f32; rows * dim * 2];
+    out.par_chunks_mut(dim * 2)
+        .enumerate()
+        .for_each(|(row, chunk)| {
+            let src = &data[row * dim..(row + 1) * dim];
+            let base = (row % seq) * dim;
+            let (cos_row, sin_row) = (&cos[base..base + dim], &sin[base..base + dim]);
+            for (j, &v) in src.iter().enumerate() {
+                let m = softplus(v);
+                chunk[j] = m * cos_row[j];
+                chunk[dim + j] = m * sin_row[j];
+            }
+        });
+    // 输出维度翻倍：shape 尾维必须改为 2*dim（否则 candle 只取前 shape 元素，sin 部分丢失）
+    let mut out_shape = shape.dims().to_vec();
+    *out_shape.last_mut().unwrap() = dim * 2;
+    Tensor::from_vec(out, out_shape, t.device()).map_err(|e| Error::Model(format!("pope: {e}")))
+}
 
-struct Attention {
+// ---- 模型结构（对照 hunterFormsBS bandSplitRotator）----
+
+#[doc(hidden)]
+pub struct Attention {
     norm_gamma: Vec<f32>,
-    qkv: Linear,
+    qkv: Linear, // [DIM → 3*dim_inner]，dim_inner = HEADS*HEAD_DIM = 512
     gates: Linear,
-    out: Linear,
-    cos: Vec<f32>,
-    sin: Vec<f32>,
+    out: Linear, // [dim_inner → DIM]
+    /// PoPE 逆频率 θ^(-j/dim)（每层每轴独立权重），长度 HEAD_DIM。
+    inv_freqs: Vec<f32>,
+    /// PoPE key 可学习相位偏置 [HEADS, HEAD_DIM]，前向时 clamp[-2π, 0]。
+    bias: Vec<f32>,
 }
 
 impl Attention {
-    fn load(st: &Safetensors, prefix: &str, sequence: usize) -> Result<Self> {
-        let freqs = st.vec1(&format!("{prefix}.rotary_embed.freqs"), HEAD_DIM / 2)?;
-        let mut cos = Vec::with_capacity(sequence * HEAD_DIM / 2);
-        let mut sin = Vec::with_capacity(sequence * HEAD_DIM / 2);
-        for index in 0..sequence {
-            for &frequency in &freqs {
-                let angle = index as f32 * frequency;
-                cos.push(angle.cos());
-                sin.push(angle.sin());
-            }
-        }
+    fn load(st: &Safetensors, prefix: &str) -> Result<Self> {
+        let dim_inner = HEADS * HEAD_DIM;
         Ok(Self {
             norm_gamma: st.vec1(&format!("{prefix}.norm.gamma"), DIM)?,
-            qkv: st.linear(&format!("{prefix}.to_qkv"), DIM, 3 * DIM, false)?,
+            qkv: st.linear(&format!("{prefix}.to_qkv"), DIM, 3 * dim_inner, false)?,
             gates: st.linear(&format!("{prefix}.to_gates"), DIM, HEADS, true)?,
-            out: st.linear(&format!("{prefix}.to_out.0"), DIM, DIM, false)?,
-            cos,
-            sin,
+            out: st.linear(&format!("{prefix}.to_out.0"), dim_inner, DIM, false)?,
+            inv_freqs: st.vec1(&format!("{prefix}.pope_embed.inv_freqs"), HEAD_DIM)?,
+            bias: st.vec2(&format!("{prefix}.pope_embed.bias"), HEADS, HEAD_DIM)?,
         })
     }
 
     fn forward(&self, x: &Tensor) -> Result<Tensor> {
-        // x: [b, seq, DIM]（seq = 帧数或频带数）
+        // x: [b, seq, DIM]
         let batch = x.dims()[0];
         let seq = x.dims()[1];
+        let dim_inner = HEADS * HEAD_DIM;
         let xn = rms_norm(x, &self.norm_gamma, DIM)?;
-        let projected = linear_forward(&self.qkv, &xn)?; // [b, seq, 3*DIM]
+        let projected = linear_forward(&self.qkv, &xn)?; // [b, seq, 3*dim_inner]
         let head = |start: usize| -> Result<Tensor> {
             projected
-                .narrow(2, start, DIM)
+                .narrow(2, start, dim_inner)
                 .map_err(|e| Error::Model(format!("qkv narrow: {e}")))?
                 .reshape((batch, seq, HEADS, HEAD_DIM))
                 .map_err(|e| Error::Model(format!("qkv reshape: {e}")))?
                 .permute((0, 2, 1, 3)) // [b, heads, seq, head_dim]
                 .map_err(|e| Error::Model(format!("qkv permute: {e}")))
         };
-        let rope = |t: Tensor| -> Result<Tensor> {
-            rotate(
-                &t,
-                &self.cos[..seq * HEAD_DIM / 2],
-                &self.sin[..seq * HEAD_DIM / 2],
-                seq,
-            )
-        };
-        let q = rope(head(0)?)?;
-        let k = rope(head(DIM)?)?;
-        let v = head(2 * DIM)?.contiguous().map_err(|e| Error::Model(format!("v contig: {e}")))?;
-        let k_t = k
-            .transpose(2, 3)
-            .map_err(|e| Error::Model(format!("k transpose: {e}")))?
+        let q = head(0)?;
+        let k = head(dim_inner)?;
+        let v = head(2 * dim_inner)?
             .contiguous()
-            .map_err(|e| Error::Model(format!("k contig: {e}")))?;
-        let scores = q
-            .matmul(&k_t)
-            .map_err(|e| Error::Model(format!("scores matmul: {e}")))?
-            .affine((HEAD_DIM as f64).powf(-0.5), 0.0)
-            .map_err(|e| Error::Model(format!("scores scale: {e}")))?;
-        let probs = candle_nn::ops::softmax(&scores, 3)
-            .map_err(|e| Error::Model(format!("softmax: {e}")))?;
+            .map_err(|e| Error::Model(format!("v contig: {e}")))?;
+        #[allow(unused_mut)]
+        let dump_enabled = std::env::var("ASEP_DUMP_ATTN").is_ok();
+        let dump_id = if dump_enabled {
+            use std::sync::atomic::{AtomicUsize, Ordering};
+            static ID: AtomicUsize = AtomicUsize::new(0);
+            let id = ID.fetch_add(1, Ordering::SeqCst);
+            let dn = move |name: &str, t: &Tensor| {
+                let v = t.flatten_all().unwrap().to_vec1::<f32>().unwrap();
+                let mut bin = Vec::new();
+                for x in v {
+                    bin.extend_from_slice(&x.to_le_bytes());
+                }
+                std::fs::write(format!("test-assets/candle_attn_{id}_{name}.npy"), bin).unwrap();
+            };
+            let _ = dn("xn", &xn);
+            let _ = dn("q", &q);
+            let _ = dn("k", &k);
+            let _ = dn("v", &v);
+            Some(dn)
+        } else {
+            None
+        };
+
+        // PoPE：freqs[i][j] = i * inv_freqs[j]；q 旋转用纯相位，
+        // k 旋转用相位 + 每头可学习 bias（clamp[-2π, 0]）。
+        let mut cos = Vec::with_capacity(seq * HEAD_DIM);
+        let mut sin = Vec::with_capacity(seq * HEAD_DIM);
+        for index in 0..seq {
+            for &f in &self.inv_freqs {
+                let angle = index as f32 * f;
+                cos.push(angle.cos());
+                sin.push(angle.sin());
+            }
+        }
+        let mut out_heads: Vec<Tensor> = Vec::with_capacity(HEADS);
+        for h in 0..HEADS {
+            let qh = q.narrow(1, h, 1)?;
+            let kh = k.narrow(1, h, 1)?;
+            let vh = v.narrow(1, h, 1)?;
+            let qp = pope_rotate(&qh, &cos, &sin, seq, HEAD_DIM)?; // [b,1,seq,128]
+            // k 侧相位 = freqs + bias[h]（clamped）
+            let mut cos_b = Vec::with_capacity(seq * HEAD_DIM);
+            let mut sin_b = Vec::with_capacity(seq * HEAD_DIM);
+            for index in 0..seq {
+                for j in 0..HEAD_DIM {
+                    let phase = index as f32 * self.inv_freqs[j] + self.bias[h * HEAD_DIM + j].clamp(-2.0 * std::f32::consts::PI, 0.0);
+                    cos_b.push(phase.cos());
+                    sin_b.push(phase.sin());
+                }
+            }
+            let kp = pope_rotate(&kh, &cos_b, &sin_b, seq, HEAD_DIM)?;
+            let kp_t = kp
+                .transpose(2, 3)
+                .map_err(|e| Error::Model(format!("k transpose: {e}")))?
+                .contiguous()
+                .map_err(|e| Error::Model(format!("k contig: {e}")))?;
+            let scores = qp
+                .matmul(&kp_t)
+                .map_err(|e| Error::Model(format!("scores matmul: {e}")))?
+                .affine((HEAD_DIM as f64).powf(-0.5), 0.0)
+                .map_err(|e| Error::Model(format!("scores scale: {e}")))?;
+            let probs = candle_nn::ops::softmax(&scores, 3)
+                .map_err(|e| Error::Model(format!("softmax: {e}")))?;
+            if let Some(dn) = &dump_id {
+                let _ = dn(&format!("qp_{h}"), &qp);
+                let _ = dn(&format!("kp_{h}"), &kp);
+                let _ = dn(&format!("scores_{h}"), &scores);
+                let _ = dn(&format!("probs_{h}"), &probs);
+            }
+            let out_h = probs
+                .matmul(&vh)
+                .map_err(|e| Error::Model(format!("values matmul: {e}")))?;
+            out_heads.push(out_h);
+        }
+        let values = Tensor::cat(&out_heads, 1).map_err(|e| Error::Model(format!("cat: {e}")))?;
         let gates = candle_nn::ops::sigmoid(&linear_forward(&self.gates, &xn)?)
             .map_err(|e| Error::Model(format!("gates sigmoid: {e}")))?
             .reshape((batch, seq, HEADS, 1))
             .map_err(|e| Error::Model(format!("gates reshape: {e}")))?
             .permute((0, 2, 1, 3))
             .map_err(|e| Error::Model(format!("gates permute: {e}")))?;
-        let values = probs
-            .matmul(&v)
-            .map_err(|e| Error::Model(format!("values matmul: {e}")))?
+        let values = values
             .broadcast_mul(&gates)
             .map_err(|e| Error::Model(format!("values gate mul: {e}")))?;
         let values = values
             .permute((0, 2, 1, 3))
             .map_err(|e| Error::Model(format!("out permute: {e}")))?
-            .reshape((batch, seq, DIM))
+            .reshape((batch, seq, dim_inner))
             .map_err(|e| Error::Model(format!("out reshape: {e}")))?;
         linear_forward(&self.out, &values)
     }
 }
 
-struct Transformer {
+#[doc(hidden)]
+pub struct Transformer {
     attention: Attention,
     norm_gamma: Vec<f32>,
     first: Linear,
@@ -331,9 +409,9 @@ struct Transformer {
 }
 
 impl Transformer {
-    fn load(st: &Safetensors, prefix: &str, sequence: usize) -> Result<Self> {
+    fn load(st: &Safetensors, prefix: &str) -> Result<Self> {
         Ok(Self {
-            attention: Attention::load(st, &format!("{prefix}.0"), sequence)?,
+            attention: Attention::load(st, &format!("{prefix}.0"))?,
             norm_gamma: st.vec1(&format!("{prefix}.1.net.0.gamma"), DIM)?,
             first: st.linear(&format!("{prefix}.1.net.1"), DIM, 4 * DIM, true)?,
             last: st.linear(&format!("{prefix}.1.net.4"), 4 * DIM, DIM, true)?,
@@ -385,7 +463,8 @@ impl Transformer {
     }
 }
 
-struct MaskEstimator {
+#[doc(hidden)]
+pub struct MaskEstimator {
     first: Linear,
     last: Linear,
 }
@@ -422,7 +501,7 @@ impl MaskEstimator {
     }
 }
 
-pub struct BsRoformer {
+pub struct BsPolarformer {
     bands: Vec<(Vec<f32>, Linear)>, // (norm gamma, projection linear)，input = 4*bins
     layers: Vec<[Transformer; 2]>,
     final_norm: Vec<f32>,
@@ -430,7 +509,7 @@ pub struct BsRoformer {
     options: RoformerOptions,
 }
 
-impl BsRoformer {
+impl BsPolarformer {
     pub fn load(path: &std::path::Path, options: RoformerOptions) -> Result<Self> {
         let device = Device::Cpu;
         let st = Safetensors::load(path, &device)?;
@@ -455,14 +534,10 @@ impl BsRoformer {
         let mut layers = Vec::with_capacity(DEPTH);
         for layer in 0..DEPTH {
             layers.push([
-                Transformer::load(
-                    &st,
-                    &format!("layers.{layer}.0.layers.0"),
-                    CHUNK / HOP + 1,
-                )?,
-                Transformer::load(&st, &format!("layers.{layer}.1.layers.0"), BANDS.len())?,
+                Transformer::load(&st, &format!("layers.{layer}.0.layers.0"))?,
+                Transformer::load(&st, &format!("layers.{layer}.1.layers.0"))?,
             ]);
-            consumed += 2 * 11; // attention 6 + ffn 5
+            consumed += 2 * 12; // attention 7（含 pope 2）+ ffn 5
         }
         let final_norm = st.vec1("final_norm.gamma", DIM)?;
         consumed += 1;
@@ -483,7 +558,7 @@ impl BsRoformer {
     }
 
     pub fn consumed_tensors(&self) -> usize {
-        3 * BANDS.len() + 4 * BANDS.len() + 2 * DEPTH * 11 + 1
+        3 * BANDS.len() + 4 * BANDS.len() + 2 * DEPTH * 12 + 1
     }
 
     // 剖析/测试访问器
@@ -503,65 +578,13 @@ impl BsRoformer {
     pub fn mask_forward(&self, i: usize, x: &Tensor) -> Result<Tensor> {
         self.masks[i].forward(x)
     }
-
-    /// 分阶段计时剖析（8 秒窗口），返回 (stft, band, layers, mask) 各阶段秒数。
     #[doc(hidden)]
-    pub fn profile(&self, audio: &[f32], samples: usize) -> Result<Vec<f64>> {
-        use std::time::Instant;
-        let frames = samples / HOP + 1;
-        let mut timings = Vec::new();
-
-        let t0 = Instant::now();
-        let mut prec = PreciseStft::new(HOP)?;
-        let mut spectra = Vec::with_capacity(2);
-        for channel in audio.chunks_exact(samples) {
-            spectra.push(prec.forward(channel)?);
-        }
-        timings.push(t0.elapsed().as_secs_f64());
-
-        let t1 = Instant::now();
-        let device = Device::Cpu;
-        let mut features: Vec<Tensor> = Vec::with_capacity(BANDS.len());
-        let mut first_bin = 0;
-        for ((gamma, linear), &bins) in self.bands.iter().zip(&BANDS) {
-            let input = 4 * bins;
-            let mut values = Vec::with_capacity(frames * input);
-            for frame in 0..frames {
-                for bin in first_bin..first_bin + bins {
-                    for spectrum in &spectra {
-                        let v = spectrum[bin * frames + frame];
-                        values.push(v.re);
-                        values.push(v.im);
-                    }
-                }
-            }
-            let x = Tensor::from_vec(values, (1, 1, frames, input), &device)
-                .map_err(|e| Error::Model(format!("band input: {e}")))?;
-            let x = rms_norm(&x, gamma, input)?;
-            features.push(linear_forward(linear, &x)?);
-            first_bin += bins;
-        }
-        timings.push(t1.elapsed().as_secs_f64());
-
-        let t2 = Instant::now();
-        let (time_batch, frequency_batch) = self.batch_sizes();
-        let mut x = Tensor::cat(&features, 1).map_err(|e| Error::Model(format!("band cat: {e}")))?;
-        for [time, frequency] in &self.layers {
-            x = time.forward_batches(&x, time_batch)?;
-            let swapped = x.permute((0, 2, 1, 3))?;
-            x = frequency.forward_batches(&swapped, frequency_batch)?.permute((0, 2, 1, 3))?;
-        }
-        timings.push(t2.elapsed().as_secs_f64());
-
-        let t3 = Instant::now();
-        x = rms_norm(&x, &self.final_norm, DIM)?;
-        for (index, estimator) in self.masks.iter().enumerate() {
-            let band_slice = x.narrow(1, index, 1)?;
-            let mask = estimator.forward(&band_slice)?;
-            mask.flatten_all()?.to_vec1::<f32>()?;
-        }
-        timings.push(t3.elapsed().as_secs_f64());
-        Ok(timings)
+    pub fn layers(&self) -> &Vec<[Transformer; 2]> {
+        &self.layers
+    }
+    #[doc(hidden)]
+    pub fn bands(&self) -> &Vec<(Vec<f32>, Linear)> {
+        &self.bands
     }
 
     pub fn batch_sizes(&self) -> (usize, usize) {
@@ -569,12 +592,12 @@ impl BsRoformer {
     }
 
     /// 立体声窗口（**平面布局**：前 samples 个为左声道，后 samples 个为右声道），
-    /// samples ∈ (FFT/2, CHUNK]。
-    /// 输出 2*(samples/HOP*HOP)，同样平面布局（前一半左声道、后一半右声道）。
+    /// samples ∈ (FFT/2, CHUNK] 且被 HOP 整除。
+    /// 输出 2*(samples/HOP*HOP)，同样平面布局。
     pub fn predict_window(&self, audio: &[f32], samples: usize) -> Result<Vec<f32>> {
-        if samples <= FFT / 2 || samples > CHUNK || audio.len() != 2 * samples {
+        if samples <= FFT / 2 || samples > CHUNK || samples % HOP != 0 || audio.len() != 2 * samples {
             return Err(Error::Model(format!(
-                "bs_roformer 期望立体声窗口 1025..={samples}<=352800, 实际 {}",
+                "bs_polarformer 期望立体声窗口（samples 被 {HOP} 整除）1025..={samples}<={CHUNK}, 实际 {}",
                 audio.len()
             )));
         }
@@ -618,16 +641,19 @@ impl BsRoformer {
             first_bin += bins;
         }
         // 3) 12 层 time/freq transformer
+        // features cat 后布局为 [1, bands, frames, DIM]（band 前、frame 后），与参考一致：
+        // time 注意力在 frame 轴（batch=bands、seq=frames，直接用该布局）；
+        // freq 注意力在 band 轴（batch=frames、seq=bands，需转置后恢复）。
         let mut x = Tensor::cat(&features, 1).map_err(|e| Error::Model(format!("band cat: {e}")))?;
         for [time, frequency] in &self.layers {
             x = time.forward_batches(&x, time_batch)?;
-            let swapped = x
+            let freq_in = x
                 .permute((0, 2, 1, 3))
-                .map_err(|e| Error::Model(format!("swap dims: {e}")))?;
-            let freq_out = frequency.forward_batches(&swapped, frequency_batch)?;
-            x = freq_out
+                .map_err(|e| Error::Model(format!("swap dims: {e}")))?; // [1, frames, bands, DIM]
+            x = frequency.forward_batches(&freq_in, frequency_batch)?;
+            x = x
                 .permute((0, 2, 1, 3))
-                .map_err(|e| Error::Model(format!("swap dims: {e}")))?;
+                .map_err(|e| Error::Model(format!("swap dims: {e}")))?; // 回 [1, bands, frames, DIM]
         }
         // 4) final norm
         x = rms_norm(&x, &self.final_norm, DIM)?;
@@ -759,5 +785,26 @@ impl BsRoformer {
             instrumental.push(samples[i] - out_vocals[i]);
         }
         Ok((out_vocals, instrumental))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn consumed_matches_723() {
+        assert_eq!(
+            3 * BANDS.len() + 4 * BANDS.len() + 2 * DEPTH * 12 + 1,
+            723
+        );
+    }
+
+    #[test]
+    fn softplus_numeric() {
+        assert_eq!(softplus(0.0), (1.0f32).ln_1p());
+        assert_eq!(softplus(10.0), 10.0 + (-10.0f32).exp().ln_1p());
+        assert_eq!(softplus(-5.0), (-5.0f32).exp().ln_1p());
+        assert!(softplus(100.0).is_finite());
     }
 }
