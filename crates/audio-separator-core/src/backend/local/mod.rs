@@ -23,11 +23,19 @@ use crate::io;
 use crate::job::ProgressEvent;
 use crate::model::OutputFormat;
 
+use self::arch::bs_polarformer::BsPolarformer;
+use self::arch::bs_roformer::{BsRoformer, RoformerOptions as BsRoformerOptions};
 use self::arch::mdx::{separate_mdx, MdxParams};
+use self::arch::mel_band_roformer::{MelBandRoformer, RoformerOptions as MelRoformerOptions};
 use self::engine::OnnxSession;
 use self::model_manage::{ModelManager, ResolvedModel};
+use crate::model::ModelEntry;
+use crate::weights::convert_ckpt_to_safetensors;
 
-/// 本地分离后端（M1：mdx 架构端到端）。
+/// Roformer 家族在 candle 下统一输出 (vocals, instrumental)。
+const ROFORMER_SAMPLE_RATE: u32 = 44_100;
+
+/// 本地分离后端（M1：mdx 架构端到端；M2：三款 Roformer 接入）。
 pub struct LocalSeparator {
     manager: Arc<ModelManager>,
 }
@@ -106,7 +114,7 @@ fn run_local(
         }
     };
 
-    // 架构分发（M1 仅 mdx）
+    // 架构分发（M1 mdx；M2 起三款 Roformer）
     let (stems, model_sample_rate): (Vec<(String, Vec<f32>)>, u32) =
         match resolved.architecture.as_str() {
             "mdx" => {
@@ -126,6 +134,60 @@ fn run_local(
                 emit(progress, ProgressEvent::Stage("infer".to_string()));
                 let stems = separate_mdx(&mut session, &samples, &params, progress, cancel)?;
                 (stems, params.sample_rate)
+            }
+            "bs_roformer" | "mel_band_roformer" | "bs_polarformer" => {
+                // ckpt/pt 权重先懒转换为 safetensors（缓存；权重形状校验在架构 load 内强制）
+                let weights = ensure_safetensors(
+                    &resolved.local_path,
+                    &resolved.cache_dir,
+                    &resolved,
+                    progress,
+                )?;
+                emit(progress, ProgressEvent::Stage("load_model".to_string()));
+                // 按架构构建专属 RoformerOptions（字段名同义但类型独立，不跨架构共用）
+                let (tb, fb) = batch_params(resolved.entry.as_ref());
+                emit(progress, ProgressEvent::Stage("read_audio".to_string()));
+                let audio = io::decode(&input_path)?;
+                let samples = io::resample_to(
+                    &audio.samples,
+                    audio.channels,
+                    audio.sample_rate,
+                    ROFORMER_SAMPLE_RATE,
+                )?;
+                emit(progress, ProgressEvent::Stage("infer".to_string()));
+                let (vocals, instrumental) = match resolved.architecture.as_str() {
+                    "bs_roformer" => BsRoformer::load(
+                        &weights,
+                        BsRoformerOptions {
+                            time_batch: tb.unwrap_or(62),
+                            frequency_batch: fb.unwrap_or(301),
+                        },
+                    )?
+                    .separate(&samples, ROFORMER_SAMPLE_RATE)?,
+                    "mel_band_roformer" => MelBandRoformer::load(
+                        &weights,
+                        MelRoformerOptions {
+                            time_batch: tb.unwrap_or(60),
+                            frequency_batch: fb.unwrap_or(301),
+                        },
+                    )?
+                    .separate(&samples, ROFORMER_SAMPLE_RATE)?,
+                    _ => BsPolarformer::load(
+                        &weights,
+                        self::arch::bs_polarformer::RoformerOptions {
+                            time_batch: tb.unwrap_or(62),
+                            frequency_batch: fb.unwrap_or(301),
+                        },
+                    )?
+                    .separate(&samples, ROFORMER_SAMPLE_RATE)?,
+                };
+                (
+                    vec![
+                        ("vocals".to_string(), vocals),
+                        ("instrumental".to_string(), instrumental),
+                    ],
+                    ROFORMER_SAMPLE_RATE,
+                )
             }
             other => {
                 return Err(Error::Backend(format!(
@@ -177,4 +239,63 @@ fn emit(sender: Option<&mpsc::Sender<ProgressEvent>>, ev: ProgressEvent) {
     if let Some(s) = sender {
         let _ = s.try_send(ev);
     }
+}
+
+/// 从清单条目 params 读取 batch 参数（各架构自己的字段，缺失时用默认值）。
+fn batch_params(entry: Option<&ModelEntry>) -> (Option<usize>, Option<usize>) {
+    let obj = entry.and_then(|e| e.params.as_object());
+    let get = |k: &str| {
+        obj.and_then(|o| o.get(k))
+            .and_then(|v| v.as_u64())
+            .map(|v| v as usize)
+    };
+    (get("time_batch"), get("frequency_batch"))
+}
+
+/// ckpt/pt → safetensors 懒转换：已 是 safetensors 直接用；
+/// 缓存缺失（或比源文件旧）时调用转换器生成，返回可加载路径。
+fn ensure_safetensors(
+    local_path: &std::path::Path,
+    cache_dir: &std::path::Path,
+    resolved: &ResolvedModel,
+    progress: Option<&mpsc::Sender<ProgressEvent>>,
+) -> Result<std::path::PathBuf> {
+    let ext = local_path
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
+    if ext == "safetensors" {
+        return Ok(local_path.to_path_buf());
+    }
+    if !matches!(ext.as_str(), "ckpt" | "pt" | "pth") {
+        return Err(Error::Model(format!(
+            "架构「{}」不支持的权重格式 .{ext}（期望 .ckpt/.pt/.pth 或 .safetensors）",
+            resolved.architecture
+        )));
+    }
+    let name = resolved
+        .entry
+        .as_ref()
+        .map(|e| e.name.clone())
+        .unwrap_or_else(|| {
+            local_path
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "model".to_string())
+        });
+    let out = cache_dir.join(format!("{}.safetensors", model_manage::sanitize_name(&name)));
+    if out.exists() {
+        let cached = std::fs::metadata(&out)
+            .map(|m| m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH))
+            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+        let source = std::fs::metadata(local_path)
+            .map(|m| m.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH))
+            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+        if cached >= source {
+            return Ok(out);
+        }
+    }
+    emit(progress, ProgressEvent::Stage("convert".to_string()));
+    convert_ckpt_to_safetensors(local_path, &out)?;
+    Ok(out)
 }

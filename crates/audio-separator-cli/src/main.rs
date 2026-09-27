@@ -88,6 +88,11 @@ struct SeparateArgs {
     #[arg(long)]
     model: Option<String>,
 
+    /// 显式指定架构（仅对 URL / 本地路径形态生效；按名字时以 manifest 为准）。
+    /// 取值如 mdx / bs_roformer / mel_band_roformer / bs_polarformer。
+    #[arg(long)]
+    arch: Option<String>,
+
     /// 只输出指定分轨（逗号分隔）；分轨全集由所选模型定义。
     #[arg(long, value_delimiter = ',')]
     stems: Option<Vec<String>>,
@@ -212,7 +217,7 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
         cfg.models.list = Some(ModelListSource::Url(u.clone()));
     }
 
-    let model = parse_model_ref(&args.model)?;
+    let model = parse_model_ref(&args.model, args.arch.clone())?;
     let input = Input::Path(PathBuf::from(&args.input));
     let req = SeparationRequest {
         input,
@@ -261,7 +266,8 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
 }
 
 /// 模型三态解析：URL → Url；存在的路径 → LocalPath；否则视为 manifest 名字。
-fn parse_model_ref(s: &Option<String>) -> Result<ModelRef> {
+/// `arch` 仅对 URL / 本地路径形态生效（按名字时由 manifest 条目决定）。
+fn parse_model_ref(s: &Option<String>, arch: Option<String>) -> Result<ModelRef> {
     let s = s.as_ref().ok_or_else(|| {
         Error::Config(
             "请用 --model 指定模型：manifest 中的名字 / 模型下载 URL / 本地模型路径"
@@ -271,13 +277,13 @@ fn parse_model_ref(s: &Option<String>) -> Result<ModelRef> {
     if s.starts_with("http://") || s.starts_with("https://") {
         return Ok(ModelRef::Url {
             url: s.clone(),
-            arch: None,
+            arch,
         });
     }
     if Path::new(s).exists() {
         return Ok(ModelRef::LocalPath {
             path: PathBuf::from(s),
-            arch: None,
+            arch,
         });
     }
     Ok(ModelRef::Name(s.clone()))

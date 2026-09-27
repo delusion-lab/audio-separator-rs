@@ -26,6 +26,8 @@ pub struct ResolvedModel {
     pub local_path: PathBuf,
     /// 架构标识（如 `mdx`）。
     pub architecture: String,
+    /// 模型缓存目录（懒转换 ckpt→safetensors 的输出位置）。
+    pub cache_dir: PathBuf,
 }
 
 /// 模型管理器：清单加载、模型解析、懒下载与缓存校验。
@@ -100,6 +102,7 @@ impl ModelManager {
                         entry: Some(entry),
                         local_path: lp.clone(),
                         architecture,
+                        cache_dir: self.cache_dir.clone(),
                     });
                 }
                 let url = entry.source_url.clone().ok_or_else(|| {
@@ -112,6 +115,7 @@ impl ModelManager {
                     entry: Some(entry),
                     local_path: dest,
                     architecture,
+                    cache_dir: self.cache_dir.clone(),
                 })
             }
             ModelRef::Url { url, arch } => {
@@ -123,6 +127,7 @@ impl ModelManager {
                     entry: None,
                     local_path: dest,
                     architecture,
+                    cache_dir: self.cache_dir.clone(),
                 })
             }
             ModelRef::LocalPath { path, arch } => {
@@ -134,6 +139,7 @@ impl ModelManager {
                     entry: None,
                     local_path: path.clone(),
                     architecture,
+                    cache_dir: self.cache_dir.clone(),
                 })
             }
         }
@@ -306,7 +312,7 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 /// 模型名 → 安全文件名（保留字母数字与 .-_）。
-fn sanitize_name(name: &str) -> String {
+pub(crate) fn sanitize_name(name: &str) -> String {
     name.chars()
         .map(|c| {
             if c.is_alphanumeric() || c == '-' || c == '_' || c == '.' {
@@ -319,7 +325,7 @@ fn sanitize_name(name: &str) -> String {
 }
 
 /// URL → 文件名（取最后一段并 sanitize）。
-fn url_file_name(url: &str) -> String {
+pub(crate) fn url_file_name(url: &str) -> String {
     url.rsplit('/')
         .next()
         .filter(|s| !s.is_empty())
