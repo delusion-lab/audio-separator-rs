@@ -32,3 +32,6 @@ convert.log
 test.log
 
 *.log
+
+# HTTP 服务上传目录
+uploads/

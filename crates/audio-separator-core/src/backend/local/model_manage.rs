@@ -113,7 +113,8 @@ impl ModelManager {
                     Error::Model(format!("模型「{name}」缺少 source_url 且未配置 local_path"))
                 })?;
                 let architecture = entry.architecture.clone();
-                let dest = self.cache_dir.join(sanitize_name(name));
+                // 下载目标沿用 URL 文件名（保留扩展名，供架构按扩展名判断格式）
+                let dest = self.cache_dir.join(url_file_name(&url));
                 self.download_if_missing(&url, &dest, entry.sha256.as_deref(), progress, cancel)?;
                 Ok(ResolvedModel {
                     entry: Some(entry),
@@ -359,7 +360,8 @@ pub(crate) fn sanitize_name(name: &str) -> String {
 
 /// URL → 文件名（取最后一段并 sanitize）。
 pub(crate) fn url_file_name(url: &str) -> String {
-    url.rsplit('/')
+    let path = url.split('?').next().unwrap_or(url);
+    path.rsplit('/')
         .next()
         .filter(|s| !s.is_empty())
         .map(sanitize_name)

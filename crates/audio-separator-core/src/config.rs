@@ -111,6 +111,8 @@ pub struct ServerConfig {
     pub auth_token: Option<String>,
     /// 上传文件大小上限（字节）。
     pub max_upload_bytes: u64,
+    /// 并行处理任务数（本地推理 / MVSEP 提交共用，MVSEP 非 Premium 平台侧仅允许 1）。
+    pub workers: usize,
 }
 
 impl Default for ServerConfig {
@@ -119,6 +121,7 @@ impl Default for ServerConfig {
             addr: "127.0.0.1:8080".to_string(),
             auth_token: None,
             max_upload_bytes: 1_000_000_000,
+            workers: 1,
         }
     }
 }
