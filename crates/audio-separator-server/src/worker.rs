@@ -26,6 +26,8 @@ pub struct WorkerPool {
     semaphore: Arc<Semaphore>,
     /// 上传根目录（输入与输出都在其下按任务 id 分目录）。
     upload_dir: std::path::PathBuf,
+    /// 任务终态回调 URL（可选，M5-C）。
+    webhook_url: Option<String>,
 }
 
 impl WorkerPool {
@@ -35,6 +37,7 @@ impl WorkerPool {
         mvsep: Option<Arc<dyn Separator>>,
         workers: usize,
         upload_dir: std::path::PathBuf,
+        webhook_url: Option<String>,
     ) -> Arc<Self> {
         let pool = Arc::new(Self {
             store,
@@ -42,6 +45,7 @@ impl WorkerPool {
             mvsep,
             semaphore: Arc::new(Semaphore::new(workers.max(1))),
             upload_dir,
+            webhook_url,
         });
         let me = Arc::clone(&pool);
         tokio::spawn(async move {
@@ -143,6 +147,7 @@ impl WorkerPool {
                     t.status = TaskStatus::Cancelled;
                     t.message = "已取消".to_string();
                 }))?;
+                self.fire_webhook(id);
                 return Ok(());
             }
             Err(e) => {
@@ -151,6 +156,7 @@ impl WorkerPool {
                     t.message = e.to_string();
                     t.error = Some(e.to_string());
                 }))?;
+                self.fire_webhook(id);
                 return Ok(());
             }
         };
@@ -171,7 +177,43 @@ impl WorkerPool {
             t.progress = 1.0;
             t.files = files;
         }))?;
+        self.fire_webhook(id);
         Ok(())
+    }
+
+    /// 任务进入终态后向配置的 webhook URL 推送 JSON（fire-and-forget，失败仅打印）。
+    fn fire_webhook(&self, id: &str) {
+        let Some(url) = &self.webhook_url else { return };
+        let Some(task) = self.store.get(id) else { return };
+        let stems: Vec<_> = task
+            .files
+            .iter()
+            .map(|f| serde_json::json!({ "name": f.name, "size": f.size }))
+            .collect();
+        let body = serde_json::json!({
+            "task_id": task.id,
+            "status": match task.status {
+                TaskStatus::Done => "done",
+                TaskStatus::Failed => "failed",
+                TaskStatus::Cancelled => "cancelled",
+                _ => "unknown",
+            },
+            "message": task.message,
+            "error": task.error,
+            "stems": stems,
+        });
+        let client = reqwest::Client::new();
+        let url = url.clone();
+        tokio::spawn(async move {
+            match client.post(&url).json(&body).send().await {
+                Ok(resp) => {
+                    if !resp.status().is_success() {
+                        eprintln!("[webhook] 回调 {url} 返回 {}", resp.status());
+                    }
+                }
+                Err(e) => eprintln!("[webhook] 回调 {url} 失败: {e}"),
+            }
+        });
     }
 }
 

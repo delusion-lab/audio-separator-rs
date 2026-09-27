@@ -75,6 +75,12 @@ async fn main() {
                     upload_dir = PathBuf::from(v);
                 }
             }
+            "--webhook-url" => {
+                i += 1;
+                if let Some(v) = args.get(i) {
+                    cfg.server.webhook_url = Some(v.clone());
+                }
+            }
             "--help" | "-h" => {
                 println!("{}", usage());
                 return;
@@ -134,6 +140,7 @@ async fn main() {
         mvsep,
         cfg.server.workers,
         upload_dir.clone(),
+        cfg.server.webhook_url.clone(),
     );
 
     let state = Arc::new(api::AppState {
@@ -174,5 +181,6 @@ fn usage() -> &'static str {
      \x20 --workers <n>      并行任务数（默认 1）\n\
      \x20 --auth-token <t>   启用 Bearer Token（默认关）\n\
      \x20 --api-key <k>      MVSEP API Key（或环境变量 ASEP_MVSEP_API_KEY）\n\
-     \x20 --upload-dir <dir> 上传根目录（默认 ./uploads）"
+     \x20 --upload-dir <dir> 上传根目录（默认 ./uploads）\n\
+     \x20 --webhook-url <u>  任务终态回调 URL（可选，M5-C）"
 }

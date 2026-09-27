@@ -113,6 +113,8 @@ pub struct ServerConfig {
     pub max_upload_bytes: u64,
     /// 并行处理任务数（本地推理 / MVSEP 提交共用，MVSEP 非 Premium 平台侧仅允许 1）。
     pub workers: usize,
+    /// 任务终态回调 URL（可选）：任务 done/failed/cancelled 时服务端向该 URL POST JSON。
+    pub webhook_url: Option<String>,
 }
 
 impl Default for ServerConfig {
@@ -122,6 +124,7 @@ impl Default for ServerConfig {
             auth_token: None,
             max_upload_bytes: 1_000_000_000,
             workers: 1,
+            webhook_url: None,
         }
     }
 }
