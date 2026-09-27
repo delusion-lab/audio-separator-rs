@@ -1,0 +1,181 @@
+# audio-separator-rs
+
+[English](README.md) | [中文](README.zh-CN.md) | **日本語** | [한국어](README.ko.md)
+
+Rust によるボーカル / 伴奏分離ツール。コアロジックは再利用可能な crate として分離され、3 つの利用形態を提供します:
+
+- **CLI**（`asep`）: 単発実行 — ローカル推論、MVSEP クラウド API、または自分の asep-server へ接続;
+- **HTTP サーバー**（`audio-separator-server`）: 常駐プロセス。アップロード / タスク / ダウンロード / キャンセルの REST API を提供;
+- **crate**（`audio-separator-core`）: ライブラリとして他の Rust プログラムに組み込み。
+
+## アーキテクチャ
+
+```
+crates/
+├── audio-separator-core    コア: モデル管理、推論エンジン、音声 IO、MVSEP クライアント
+├── audio-separator-cli     CLI エントリ（バイナリ asep）
+└── audio-separator-server  axum HTTP サーバー（タスクキュー + デュアルバックエンド）
+```
+
+### ローカル推論エンジン（バックエンド `local`）
+
+| アーキテクチャ | エンジン | 状態 |
+| --- | --- | --- |
+| mdx（UVR-MDX-NET） | ONNX Runtime | ✅ |
+| bs_roformer | candle（純 Rust、f64 STFT + band-split + 双軸アテンション） | ✅ |
+| mel_band_roformer | candle（Slaney mel フィルタバンク + MSST 構造） | ✅ |
+| bs_polarformer | candle（PoPE 極座標位置埋め込み） | ✅ |
+
+Roformer の重みは `ckpt`（pickle）または `safetensors` で提供されます。`ckpt` は初回使用時に自動で `safetensors` に変換・キャッシュされます（遅延変換）。CPU 推論で、性能は参考実装と同程度です（詳細は `PLAN.md` §10）。
+
+### MVSEP クラウドバックエンド（バックエンド `mvsep`）
+
+[MVSEP API](https://mvsep.com/zh/full_api) 経由で分離を実行します。非 Premium アカウントは同時実行 1 タスク・日次クォータ制限で、コード内でセマフォによるレート制限を行います。
+
+## クイックスタート
+
+### ビルド
+
+Rust ツールチェーンが必要です。ローカル ORT（ONNX Runtime 1.28）の設定は下記「ローカルビルド手順（Windows / ONNX Runtime）」を参照。
+
+```sh
+cargo build --release --workspace
+```
+
+成果物: `target/release/asep.exe`、`target/release/audio-separator-server.exe`。
+
+### CLI での分離（ローカル）
+
+```sh
+# モデル初回使用時にモデルリスト（models.json 参照）から自動ダウンロード
+asep separate input.wav -o out/ --model model_bs_polarformer_float16
+
+# 出力フォーマット指定（wav/wav32/flac/flac24/mp3/m4a）
+asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
+
+# モデル重み + パラメータ設定（yaml/json）を直接指定し、models.json を完全にバイパス:
+#   --model       ダウンロード URL / ローカルパス（+ --arch でアーキテクチャ指定）
+#   --config-url  パラメータファイルの URL / ローカルパス。アーキテクチャパラメータの正典ソース
+asep separate input.wav -o out/ --model ./model.ckpt --arch bs_polarformer --config-url ./config.yaml
+asep separate input.wav -o out/ --model https://.../model.ckpt --arch mel_band_roformer --config-url https://.../config.yaml
+```
+
+### CLI での分離（MVSEP クラウド）
+
+```sh
+asep separate input.wav -o out/ --backend mvsep \
+  --model model_bs_polarformer_float16 --api-key YOUR_MVSEP_KEY --format flac
+
+# 環境変数で Key を渡す場合
+ASEP_MVSEP_API_KEY=YOUR_KEY asep separate input.wav -o out/ --backend mvsep --model ...
+```
+
+### CLI での分離（自分のサーバー）
+
+まず自分の asep-server を起動し、CLI からドライブします — CLI がファイルのアップロード・タスクのポーリング・ステムのダウンロードを担当します:
+
+```sh
+# ターミナル 1: サーバーを起動（デフォルト 127.0.0.1:8080）
+audio-separator-server
+
+# ターミナル 2: サーバー経由で分離
+asep separate input.wav -o out/ --backend server --model model_bs_polarformer_float16
+
+# リモートサーバー / Bearer 認証
+asep separate input.wav -o out/ --backend server \
+  --server-url http://10.0.0.5:8080 --auth-token secret --model UVR_MDXNET_9482
+
+# サーバーが提供するモデルリストの取得 / サーバータスクの確認
+asep models --backend server --server-url http://127.0.0.1:8080
+asep job-status <task_id> --server-url http://127.0.0.1:8080
+```
+
+補足: ローカル入力ファイルはサーバーへアップロードされます。URL 入力は `audio_url` フィールドとして透過されます（URL 入力はサーバー側では MVSEP バックエンドのみ対応）。サーバーは事前に起動しておく必要があり、CLI は起動しません。クライアントは `--server-url` へ直接接続し、ダウンロードプロキシは使いません。
+
+### サーバー
+
+```sh
+# 起動（デフォルト 127.0.0.1:8080）
+audio-separator-server --api-key YOUR_MVSEP_KEY --workers 1
+
+# 認証を有効化（Bearer Token、デフォルトはオフ）
+audio-separator-server --auth-token secret
+```
+
+REST エンドポイント:
+
+| メソッド | パス | 説明 |
+| --- | --- | --- |
+| POST | `/api/v1/separate` | multipart でタスク送信（`audio` ファイルまたは `audio_url` + `model` + `backend` + `format` + 任意の `config_url`） |
+| GET | `/api/v1/tasks/{id}` | タスク状態（queued/running/done/failed/cancelled + 進捗） |
+| GET | `/api/v1/tasks/{id}/download?stem=` | ステム結果のダウンロード |
+| DELETE | `/api/v1/tasks/{id}` | 実行中タスクのキャンセル / 終了タスクの削除 |
+| GET | `/api/v1/models?backend=local\|mvsep` | モデルリスト / MVSEP アルゴリズムカタログ |
+| GET | `/api/v1/health` | ヘルスチェック |
+
+アップロード例:
+
+```sh
+curl -F "audio=@input.wav" -F "model=model_bs_polarformer_float16" \
+  -F "backend=local" -F "format=flac" http://127.0.0.1:8080/api/v1/separate
+```
+
+## モデルリスト（models.json）
+
+モデルのメタ情報（ダウンロード URL、sha256、アーキテクチャパラメータ、MVSEP マッピングなど）は JSON ファイルで管理されます:
+
+- デフォルトではリポジトリ内の `models.json` を読み込み;
+- `--models-url <url>` / 設定 `models.list = { url = "..." }` でリモートリストを取得（ローカルパス / URL どちらも可）;
+- リストは GitHub リポジトリ [delusion-lab/asep-models](https://github.com/delusion-lab/asep-models) で独立管理（マニフェスト JSON のみをホストし、重みは公式ソースに残します）。
+
+エントリ例:
+
+```json
+{
+  "name": "model_bs_polarformer_float16",
+  "architecture": "bs_polarformer",
+  "source_url": "https://huggingface.co/.../model_bs_polarformer_float16.ckpt",
+  "sha256": "省略可、未設定時は検証スキップ",
+  "config_url": "省略可、yaml/json パラメータファイル（URL 対応）",
+  "mvsep": { "sep_type": 123 }
+}
+```
+
+`config_url` により、オープンソースモデル作者が重みとともに公開しているパラメータファイル（yaml/json）を URL で直接参照し、アーキテクチャパラメータの正典ソースとできます。
+
+**models.json を完全にバイパス**: `--model <URL|ローカルパス> --config-url <URL|ローカルパス>`（CLI）、または multipart の `config_url` フィールド（サーバー）
+で、重みとパラメータファイルをマニフェスト登録なしで直接指定できます。名前で参照する場合、`config_url` はマニフェストエントリの同名設定を上書きします。
+サーバー `POST /api/v1/separate` の `config_url` フィールドも同様に有効です。
+
+## ネットワークとプロキシ
+
+すべてのネットワーク操作（モデルダウンロード、リスト取得、MVSEP 呼び出し）は HTTP プロキシ経由で統一されます。解決順:
+
+`config.network.proxy`（明示設定）→ `ALL_PROXY` → `HTTPS_PROXY` → `HTTP_PROXY`
+
+## ローカルビルド手順（Windows / ONNX Runtime）
+
+`ort` crate はネイティブの ONNX Runtime DLL を必要とします（crates.io の `ort` は RC 版のみ公開。デフォルトの静的ライブラリは MSVC STL と競合します）。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/fetch-ort.ps1
+```
+
+スクリプトは公式 `onnxruntime-win-x64-1.28.0` を `%LOCALAPPDATA%\asep-ort` にダウンロードし、`scripts/` のコメントに従って `onnxruntime.dll` を `target/<profile>` へ配布します（実行時は exe ディレクトリが優先ロードされます。古い DLL は使用しないでください）。`scripts/fetch-ort.ps1` は `.cargo/config.toml` も生成します（マシンローカル、コミット対象外）。
+
+## テスト
+
+```sh
+cargo test --workspace
+```
+
+対象: モデルリスト解析、アーキテクチャパラメータ、エンコーダラウンドトリップ（WAV16/32、FLAC16/24、MP3）、サーバーのヘルスチェック / 認証 / モデルリスト。
+
+## Docker
+
+```sh
+docker build -t audio-separator-server .
+docker run -p 8080:8080 -e ASEP_MVSEP_API_KEY=... audio-separator-server
+```
+
+イメージは `local`（ONNX Runtime Linux ライブラリ含む）と `mvsep` の両バックエンドに対応。Roformer の重みは初回使用時にネットワークアクセスが必要です。

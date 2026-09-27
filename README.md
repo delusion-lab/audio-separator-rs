@@ -1,151 +1,173 @@
 # audio-separator-rs
 
-Rust 实现的人声 / 伴奏分离工具。核心逻辑独立成 crate，提供三种使用形态：
+**English** | [中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md)
 
-- **CLI**（`asep`）：单次运行，本地推理或调用 MVSEP 云 API；
-- **HTTP 服务端**（`audio-separator-server`）：常驻进程，提供上传 / 任务 / 下载 / 取消 REST 接口；
-- **crate**（`audio-separator-core`）：作为库嵌入其它 Rust 程序。
+A Rust vocal / accompaniment separation tool. The core logic is a reusable crate with three usage modes:
 
-## 架构
+- **CLI** (`asep`): one-shot runs — local inference, MVSEP cloud API, or your own asep-server;
+- **HTTP server** (`audio-separator-server`): a long-running process exposing upload / task / download / cancel REST endpoints;
+- **crate** (`audio-separator-core`): embed the library in other Rust programs.
+
+## Architecture
 
 ```
 crates/
-├── audio-separator-core   核心：模型管理、推理引擎、音频 IO、MVSEP 客户端
-├── audio-separator-cli    CLI 入口（二进制 asep）
-└── audio-separator-server axum HTTP 服务端（任务队列 + 双后端）
+├── audio-separator-core    core: model management, inference engines, audio IO, MVSEP client
+├── audio-separator-cli     CLI entry (binary asep)
+└── audio-separator-server  axum HTTP server (task queue + dual backends)
 ```
 
-### 本地推理引擎（后端 local）
+### Local inference engine (backend `local`)
 
-| 架构 | 引擎 | 状态 |
+| Architecture | Engine | Status |
 | --- | --- | --- |
-| mdx（UVR-MDX-NET） | ONNX Runtime | ✅ |
-| bs_roformer | candle（纯 Rust，f64 STFT + band-split + 双轴向注意力） | ✅ |
-| mel_band_roformer | candle（Slaney mel 滤波器组 + MSST 结构） | ✅ |
-| bs_polarformer | candle（PoPE 极坐标嵌入） | ✅ |
+| mdx (UVR-MDX-NET) | ONNX Runtime | ✅ |
+| bs_roformer | candle (pure Rust, f64 STFT + band-split + dual-axis attention) | ✅ |
+| mel_band_roformer | candle (Slaney mel filterbank + MSST structure) | ✅ |
+| bs_polarformer | candle (PoPE polar-coordinate positional embedding) | ✅ |
 
-Roformer 权重以 `ckpt`（pickle）或 `safetensors` 提供：`ckpt` 首次使用自动转换并缓存为 `safetensors`（懒转换）。CPU 推理，性能与参考实现同量级（详见 `PLAN.md` §10）。
+Roformer weights come as `ckpt` (pickle) or `safetensors`: on first use a `ckpt` is converted and cached as `safetensors` automatically (lazy conversion). CPU inference, performance on par with the reference implementation (see `PLAN.md` §10).
 
-### MVSEP 云后端（后端 mvsep）
+### MVSEP cloud backend (backend `mvsep`)
 
-调用 [MVSEP API](https://mvsep.com/zh/full_api) 完成分离。非 Premium 账号单并发、每天有分离额度，代码内置信号量限流。
+Separation via the [MVSEP API](https://mvsep.com/zh/full_api). Non-Premium accounts get a single concurrent task and a daily quota; the code enforces rate limiting with a semaphore.
 
-## 快速开始
+## Quick start
 
-### 构建
+### Build
 
-需要 Rust 工具链；本地 ORT（ONNX Runtime 1.28）配置见下文「本地构建说明」。
+Requires the Rust toolchain; local ORT (ONNX Runtime 1.28) setup is described in "Local build notes (Windows / ONNX Runtime)" below.
 
 ```sh
 cargo build --release --workspace
 ```
 
-产物：`target/release/asep.exe`、`target/release/audio-separator-server.exe`。
+Artifacts: `target/release/asep.exe`, `target/release/audio-separator-server.exe`.
 
-### CLI 分离（本地）
+### CLI separation (local)
 
 ```sh
-# 首次使用某模型时自动从模型清单下载权重（清单见 models.json）
+# On first use, the model weights are downloaded automatically from the model list (see models.json)
 asep separate input.wav -o out/ --model model_bs_polarformer_float16
 
-# 指定输出格式（wav/wav32/flac/flac24/mp3/m4a）
+# Pick the output format (wav/wav32/flac/flac24/mp3/m4a)
 asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
 
-# 直传模型权重 + 参数配置（yaml/json），完全绕过 models.json：
-#   --model 支持 下载 URL / 本地模型路径（+ --arch 指定架构）
-#   --config-url 支持 参数文件 URL / 本地路径，作为架构参数的权威来源
+# Pass model weights + parameter config directly (yaml/json), bypassing models.json entirely:
+#   --model       accepts a download URL / local model path (+ --arch to pin the architecture)
+#   --config-url  accepts a parameter file URL / local path; the authoritative source of architecture params
 asep separate input.wav -o out/ --model ./model.ckpt --arch bs_polarformer --config-url ./config.yaml
 asep separate input.wav -o out/ --model https://.../model.ckpt --arch mel_band_roformer --config-url https://.../config.yaml
 ```
 
-### CLI 分离（MVSEP 云）
+### CLI separation (MVSEP cloud)
 
 ```sh
 asep separate input.wav -o out/ --backend mvsep \
   --model model_bs_polarformer_float16 --api-key YOUR_MVSEP_KEY --format flac
 
-# 或通过环境变量提供 Key
+# Or provide the key via environment variable
 ASEP_MVSEP_API_KEY=YOUR_KEY asep separate input.wav -o out/ --backend mvsep --model ...
 ```
 
-### 服务端
+### CLI separation (your own server)
+
+Run your asep-server first, then drive it with the CLI — the CLI uploads the file, polls the task, and downloads the stems:
 
 ```sh
-# 启动（默认 127.0.0.1:8080）
+# Terminal 1: start the server (default 127.0.0.1:8080)
+audio-separator-server
+
+# Terminal 2: separate through the server
+asep separate input.wav -o out/ --backend server --model model_bs_polarformer_float16
+
+# Remote server / Bearer auth
+asep separate input.wav -o out/ --backend server \
+  --server-url http://10.0.0.5:8080 --auth-token secret --model UVR_MDXNET_9482
+
+# Query the model list served by the server / inspect a server task
+asep models --backend server --server-url http://127.0.0.1:8080
+asep job-status <task_id> --server-url http://127.0.0.1:8080
+```
+
+Notes: a local input file is uploaded to the server; a URL input is passed through as `audio_url` (URL input is only supported by the MVSEP backend on the server side). The server must already be running — the CLI does not start it. The client connects to `--server-url` directly and does not use the download proxy.
+
+### Server
+
+```sh
+# Start (default 127.0.0.1:8080)
 audio-separator-server --api-key YOUR_MVSEP_KEY --workers 1
 
-# 启用鉴权（Bearer Token，默认关闭）
+# Enable auth (Bearer Token, off by default)
 audio-separator-server --auth-token secret
 ```
 
-REST 接口：
+REST endpoints:
 
-| 方法 | 路径 | 说明 |
+| Method | Path | Description |
 | --- | --- | --- |
-| POST | `/api/v1/separate` | multipart 提交任务（`audio` 文件或 `audio_url` + `model` + `backend` + `format` + 可选 `config_url`） |
-| GET | `/api/v1/tasks/{id}` | 查询任务状态（queued/running/done/failed/cancelled + 进度） |
-| GET | `/api/v1/tasks/{id}/download?stem=` | 下载分轨结果 |
-| DELETE | `/api/v1/tasks/{id}` | 取消运行中任务或清理终态任务 |
-| GET | `/api/v1/models?backend=local\|mvsep` | 模型列表 / MVSEP 算法目录 |
-| GET | `/api/v1/health` | 健康检查 |
+| POST | `/api/v1/separate` | multipart task submission (`audio` file or `audio_url` + `model` + `backend` + `format` + optional `config_url`) |
+| GET | `/api/v1/tasks/{id}` | task status (queued/running/done/failed/cancelled + progress) |
+| GET | `/api/v1/tasks/{id}/download?stem=` | download a stem |
+| DELETE | `/api/v1/tasks/{id}` | cancel a running task or clean up a finished one |
+| GET | `/api/v1/models?backend=local\|mvsep` | model list / MVSEP algorithm catalog |
+| GET | `/api/v1/health` | health check |
 
-上传示例：
+Upload example:
 
 ```sh
 curl -F "audio=@input.wav" -F "model=model_bs_polarformer_float16" \
   -F "backend=local" -F "format=flac" http://127.0.0.1:8080/api/v1/separate
 ```
 
-## 模型清单（models.json）
+## Model list (models.json)
 
-模型元信息（下载地址、sha256、架构参数、MVSEP 映射等）由 JSON 文件维护：
+Model metadata (download URL, sha256, architecture params, MVSEP mapping, etc.) is maintained in a JSON file:
 
-- 默认读取仓库内 `models.json`；
-- `--models-url <url>` / 配置 `models.list = { url = "..." }` 可拉取远程清单（本地或 URL 均可）；
-- 清单独立维护在 GitHub 仓库 [delusion-lab/asep-models](https://github.com/delusion-lab/asep-models)（仅托管清单 JSON，权重留在官方源）。
+- by default the repo-local `models.json` is read;
+- `--models-url <url>` / config `models.list = { url = "..." }` pulls a remote list (local path or URL both work);
+- the list lives independently in the GitHub repo [delusion-lab/asep-models](https://github.com/delusion-lab/asep-models) (only the manifest JSON is hosted; weights stay at their official sources).
 
-条目示例：
+Entry example:
 
 ```json
 {
   "name": "model_bs_polarformer_float16",
   "architecture": "bs_polarformer",
   "source_url": "https://huggingface.co/.../model_bs_polarformer_float16.ckpt",
-  "sha256": "可选，缺省跳过校验",
-  "config_url": "可选，yaml/json 参数文件（支持 URL）",
+  "sha256": "optional, skipped when absent",
+  "config_url": "optional, yaml/json param file (URL supported)",
   "mvsep": { "sep_type": 123 }
 }
 ```
 
-`config_url` 允许把开源模型作者随权重发布的参数文件（yaml/json）直接以 URL 引入，作为架构参数的权威来源。
+`config_url` lets you point directly at the parameter file (yaml/json) that open-source model authors ship with their weights, as the authoritative source of architecture params.
 
-**不经过 models.json 直传**：`--model <URL|本地路径> --config-url <URL|本地路径>`（CLI）或 multipart `config_url` 字段（服务端）
-可完全绕过清单——权重与参数文件均可直接指定，无需在清单中登记条目；按名引用时 `config_url` 覆盖清单条目的同名配置。
-服务端 `POST /api/v1/separate` 的 `config_url` 字段同样生效。
+**Bypass models.json entirely**: `--model <URL|local path> --config-url <URL|local path>` (CLI), or the multipart `config_url` field (server) — both weights and the param file can be specified directly without registering a manifest entry. When referencing a name, `config_url` overrides the manifest entry's config. The server `POST /api/v1/separate` `config_url` field works the same way.
 
-## 网络与代理
+## Network & proxy
 
-所有联网操作（模型下载、清单拉取、MVSEP 调用）统一走 HTTP 代理。解析顺序：
+All network operations (model download, list fetch, MVSEP calls) go through an HTTP proxy uniformly. Resolution order:
 
-`config.network.proxy`（显式配置）→ `ALL_PROXY` → `HTTPS_PROXY` → `HTTP_PROXY`
+`config.network.proxy` (explicit) → `ALL_PROXY` → `HTTPS_PROXY` → `HTTP_PROXY`
 
-## 本地构建说明（Windows / ONNX Runtime）
+## Local build notes (Windows / ONNX Runtime)
 
-`ort` crate 需要本机 ONNX Runtime 动态库（crates.io 的 `ort` 仅发布 rc 版，默认静态库与 MSVC STL 冲突）。
+The `ort` crate needs the native ONNX Runtime DLL (crates.io `ort` only publishes RC builds; the default static lib conflicts with the MSVC STL).
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/fetch-ort.ps1
 ```
 
-脚本下载官方 `onnxruntime-win-x64-1.28.0` 到 `%LOCALAPPDATA%\asep-ort`，并按 `scripts/` 注释把 `onnxruntime.dll` 分发到 `target/<profile>`（运行时 exe 目录优先加载，请勿使用旧版本 dll）。`scripts/fetch-ort.ps1` 会生成 `.cargo/config.toml`（本机配置，不入库）。
+The script downloads the official `onnxruntime-win-x64-1.28.0` into `%LOCALAPPDATA%\asep-ort` and distributes `onnxruntime.dll` into `target/<profile>` per the comments in `scripts/` (the exe directory is loaded first at runtime; do not use older DLLs). `scripts/fetch-ort.ps1` also generates `.cargo/config.toml` (machine-local, not committed).
 
-## 测试
+## Tests
 
 ```sh
 cargo test --workspace
 ```
 
-覆盖：模型清单解析、架构参数、编码器回读（WAV16/32、FLAC16/24、MP3）、服务端健康检查 / 鉴权 / 模型列表。
+Covers: model list parsing, architecture params, encoder round-trips (WAV16/32, FLAC16/24, MP3), server health check / auth / model list.
 
 ## Docker
 
@@ -154,4 +176,4 @@ docker build -t audio-separator-server .
 docker run -p 8080:8080 -e ASEP_MVSEP_API_KEY=... audio-separator-server
 ```
 
-镜像内同时支持 local（含 ONNX Runtime Linux 库）与 mvsep 后端。注意 Roformer 权重首次使用需联网下载。
+The image supports both the `local` (including ONNX Runtime Linux libraries) and `mvsep` backends. Note that Roformer weights need network access on first use.
