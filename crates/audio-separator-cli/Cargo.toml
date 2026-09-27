@@ -1,6 +1,6 @@
 [package]
 name = "audio-separator-cli"
-description = "音频分离命令行工具"
+description = "Audio separation tool: local inference / MVSEP cloud API / HTTP server"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -20,7 +20,7 @@ impl TorchArchive {
     pub fn load(path: &Path) -> Result<Self> {
         let file = std::fs::File::open(path)?;
         let zip = zip::ZipArchive::new(file)
-            .map_err(|e| Error::Model(format!("ckpt 不是有效 zip: {e}")))?;
+            .map_err(|e| Error::Model(format!("ckpt is not a valid zip: {e}")))?;
 
         // 定位 data.pkl（目录前缀如 last_bs_roformer/、archive/）
         let names: Vec<String> = zip.file_names().map(|s| s.to_string()).collect();
@@ -28,7 +28,7 @@ impl TorchArchive {
             .iter()
             .find(|n| n.ends_with("data.pkl"))
             .cloned()
-            .ok_or_else(|| Error::Model("存档缺少 data.pkl".to_string()))?;
+            .ok_or_else(|| Error::Model("archive missing data.pkl".to_string()))?;
         let prefix = pkl_name.trim_end_matches("data.pkl").to_string();
 
         let zip = RefCell::new(zip);
@@ -48,13 +48,13 @@ impl TorchArchive {
         {
             let mut z = zip.borrow_mut();
             z.by_name(&pkl_name)
-                .map_err(|e| Error::Model(format!("读取 {pkl_name} 失败: {e}")))?
+                .map_err(|e| Error::Model(format!("failed to read {pkl_name}: {e}")))?
                 .read_to_end(&mut pkl)?;
         }
         let top = parse(&pkl)?;
         let dict = match top {
             Value::Dict(items) => items,
-            _ => return Err(Error::Model("顶层不是 OrderedDict".to_string())),
+            _ => return Err(Error::Model("top level is not an OrderedDict".to_string())),
         };
         let mut tensors = Vec::new();
         for (k, v) in dict {
@@ -73,7 +73,7 @@ impl TorchArchive {
             let mut z = zip.borrow_mut();
             let mut out = Vec::new();
             z.by_name(&name)
-                .map_err(|e| Error::Model(format!("读取权重分片 {name} 失败: {e}")))?
+                .map_err(|e| Error::Model(format!("failed to read weight shard {name}: {e}")))?
                 .read_to_end(&mut out)?;
             Ok(out)
         }) as Box<dyn FnMut(&str) -> Result<Vec<u8>>>);

@@ -319,7 +319,7 @@ impl MelBandRoformer {
         let total = st.len();
         if consumed != total {
             return Err(Error::Model(format!(
-                "权重消费数不符: 期望 {total}, 已消费 {consumed}"
+                "weight consumption mismatch: expected {total}, consumed {consumed}"
             )));
         }
         Ok(Self {
@@ -341,12 +341,12 @@ impl MelBandRoformer {
     pub fn predict_window(&self, audio: &[f32], samples: usize) -> Result<Vec<f32>> {
         if samples <= FFT / 2 || samples > CHUNK || audio.len() != 2 * samples {
             return Err(Error::Model(format!(
-                "mel_band_roformer 期望立体声窗口 1025..={samples}<=352800, 实际 {}",
+                "mel_band_roformer expects stereo window 1025..={samples}<=352800, got {}",
                 audio.len()
             )));
         }
         if audio.iter().any(|v| !v.is_finite()) {
-            return Err(Error::Model("音频含非有限值".into()));
+            return Err(Error::Model("audio contains non-finite values".into()));
         }
         let frames = samples / HOP + 1;
         let (time_batch, frequency_batch) = self.batch_sizes();
@@ -357,7 +357,7 @@ impl MelBandRoformer {
         for channel in audio.chunks_exact(samples) {
             let spec = prec.forward(channel)?;
             if spec.iter().any(|v| !v.re.is_finite() || !v.im.is_finite()) {
-                return Err(Error::Model("Roformer 谱含非有限值".into()));
+                return Err(Error::Model("Roformer spectrum contains non-finite values".into()));
             }
             spectra.push(spec);
         }
@@ -415,7 +415,7 @@ impl MelBandRoformer {
                 .to_vec1::<f32>()
                 .map_err(|e| Error::Model(format!("mask read: {e}")))?;
             if mask.iter().any(|v| !v.is_finite()) {
-                return Err(Error::Model("Roformer mask 含非有限值".into()));
+                return Err(Error::Model("Roformer mask contains non-finite values".into()));
             }
             if std::env::var("ASEP_DEBUG").is_ok() {
                 let sum_abs: f32 = mask.iter().map(|v| v.abs()).sum();
@@ -483,7 +483,7 @@ impl MelBandRoformer {
             output.extend(stft.inverse(spectrum, frames)?);
         }
         if output.len() != 2 * output_samples || output.iter().any(|v| !v.is_finite()) {
-            return Err(Error::Model("Roformer 输出波形无效".into()));
+            return Err(Error::Model("Roformer output waveform invalid".into()));
         }
         Ok(output)
     }
@@ -492,7 +492,7 @@ impl MelBandRoformer {
     pub fn separate(&self, samples: &[f32], sample_rate: u32) -> Result<(Vec<f32>, Vec<f32>)> {
         if sample_rate != SAMPLE_RATE {
             let resampled = crate::io::resample_to(samples, 2, sample_rate, SAMPLE_RATE)
-                .map_err(|e| Error::Backend(format!("重采样失败: {e}")))?;
+                .map_err(|e| Error::Backend(format!("resampling failed: {e}")))?;
             self.separate_44100(&resampled)
         } else {
             self.separate_44100(samples)
@@ -501,7 +501,7 @@ impl MelBandRoformer {
 
     fn separate_44100(&self, samples: &[f32]) -> Result<(Vec<f32>, Vec<f32>)> {
         if samples.len() % 2 != 0 {
-            return Err(Error::Model("交错音频长度必须为偶数".into()));
+            return Err(Error::Model("interleaved audio length must be even".into()));
         }
         let len = samples.len() / 2;
         let mut audio: Vec<&[f32]> = Vec::with_capacity(2);
@@ -556,7 +556,7 @@ impl MelBandRoformer {
         for channel in 0..2 {
             for i in 0..samples_len {
                 if !silent && counter[i] <= 0.0 {
-                    return Err(Error::Model("Roformer 调度窗未覆盖样本".into()));
+                    return Err(Error::Model("Roformer schedule window did not cover the samples".into()));
                 }
                 let weight = if silent { 1.0 } else { counter[i] };
                 out_vocals[channel * samples_len + i] =

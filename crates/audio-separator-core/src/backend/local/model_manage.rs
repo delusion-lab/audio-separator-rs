@@ -76,7 +76,7 @@ impl ModelManager {
             Some(p) => p.clone(),
             None => dirs::cache_dir()
                 .ok_or_else(|| {
-                    Error::Config("无法确定系统缓存目录，请在配置中设置 models.cache_dir".to_string())
+                    Error::Config("cannot determine system cache directory; set models.cache_dir in config".to_string())
                 })?
                 .join("audio-separator-rs")
                 .join("models"),
@@ -115,7 +115,7 @@ impl ModelManager {
             ModelRef::Name(name) => {
                 let mut entry = self.list.get(name).ok_or_else(|| {
                     Error::Model(format!(
-                        "模型「{name}」不在清单中；可用 --models-file/--models-url 指定清单，或直接提供模型 URL / 本地路径"
+                        "model \"{name}\" not in the manifest; use --models-file/--models-url to point at a list, or provide a model URL / local path directly"
                     ))
                 })?
                 .clone();
@@ -132,7 +132,7 @@ impl ModelManager {
                 if let Some(lp) = &local_path {
                     if !lp.exists() {
                         return Err(Error::Model(format!(
-                            "模型条目声明的本地路径不存在: {}",
+                            "model entry declared local path does not exist: {}",
                             lp.display()
                         )));
                     }
@@ -145,7 +145,7 @@ impl ModelManager {
                     });
                 }
                 let url = entry.source_url.clone().ok_or_else(|| {
-                    Error::Model(format!("模型「{name}」缺少 source_url 且未配置 local_path"))
+                    Error::Model(format!("model \"{name}\" has no source_url and no local_path configured"))
                 })?;
                 let architecture = entry.architecture.clone();
                 // 下载目标沿用 URL 文件名（保留扩展名，供架构按扩展名判断格式）
@@ -173,7 +173,7 @@ impl ModelManager {
             }
             ModelRef::LocalPath { path, arch } => {
                 if !path.exists() {
-                    return Err(Error::Model(format!("模型文件不存在: {}", path.display())));
+                    return Err(Error::Model(format!("model file does not exist: {}", path.display())));
                 }
                 let architecture = arch.clone().unwrap_or_else(|| "mdx".to_string());
                 let name = path
@@ -219,11 +219,11 @@ impl ModelManager {
         let mut resp = blocking_client(self.proxy.as_deref())?
             .get(url)
             .send()
-            .map_err(|e| Error::Network(format!("下载模型失败 {url}: {e}")))?;
+            .map_err(|e| Error::Network(format!("model download failed {url}: {e}")))?;
         let status = resp.status();
         if !status.is_success() {
             return Err(Error::Network(format!(
-                "下载模型失败 {url}: HTTP {status}"
+                "model download failed {url}: HTTP {status}"
             )));
         }
         let total = resp.content_length();
@@ -241,7 +241,7 @@ impl ModelManager {
             use std::io::Read;
             let n = resp
                 .read(&mut buf)
-                .map_err(|e| Error::Network(format!("下载模型失败 {url}: {e}")))?;
+                .map_err(|e| Error::Network(format!("model download failed {url}: {e}")))?;
             if n == 0 {
                 break;
             }
@@ -262,7 +262,7 @@ impl ModelManager {
             if actual != sha {
                 let _ = std::fs::remove_file(&tmp);
                 return Err(Error::Model(format!(
-                    "模型 SHA-256 校验失败: 期望 {sha}，实际 {actual}"
+                    "model SHA-256 verification failed: expected {sha}, got {actual}"
                 )));
             }
         }
@@ -296,7 +296,7 @@ impl ModelManager {
             let p = PathBuf::from(config);
             if !p.exists() {
                 return Err(Error::Model(format!(
-                    "模型参数配置路径不存在: {}",
+                    "model config path does not exist: {}",
                     p.display()
                 )));
             }
@@ -312,16 +312,16 @@ fn fetch_json(url: &str, proxy: Option<&str>) -> Result<ModelList> {
     let resp = blocking_client(proxy)?
         .get(url)
         .send()
-        .map_err(|e| Error::Network(format!("获取模型清单失败 {url}: {e}")))?;
+        .map_err(|e| Error::Network(format!("model list fetch failed {url}: {e}")))?;
     let status = resp.status();
     if !status.is_success() {
         return Err(Error::Network(format!(
-            "获取模型清单失败 {url}: HTTP {status}"
+            "model list fetch failed {url}: HTTP {status}"
         )));
     }
     let text = resp
         .text()
-        .map_err(|e| Error::Network(format!("读取模型清单失败 {url}: {e}")))?;
+        .map_err(|e| Error::Network(format!("model list read failed {url}: {e}")))?;
     serde_json::from_str(&text).map_err(Error::Json)
 }
 
@@ -331,10 +331,10 @@ fn blocking_client(proxy: Option<&str>) -> Result<reqwest::blocking::Client> {
         .user_agent("audio-separator-rs/0.1");
     if let Some(p) = resolve_proxy(proxy) {
         let proxy = reqwest::Proxy::all(&p)
-            .map_err(|e| Error::Config(format!("代理配置无效 {p}: {e}")))?;
+            .map_err(|e| Error::Config(format!("invalid proxy config {p}: {e}")))?;
         builder = builder.proxy(proxy);
     }
-    builder.build().map_err(|e| Error::Network(format!("构建 HTTP 客户端失败: {e}")))
+    builder.build().map_err(|e| Error::Network(format!("failed to build HTTP client: {e}")))
 }
 
 /// 代理解析：显式配置 > ALL_PROXY > HTTPS_PROXY > HTTP_PROXY。
@@ -459,7 +459,7 @@ model:
                 None,
             )
             .unwrap();
-        let entry = resolved.entry.as_ref().expect("应构造临时条目");
+        let entry = resolved.entry.as_ref().expect("should build a temp entry");
         assert_eq!(entry.architecture, "bs_roformer");
         assert_eq!(entry.config_url.as_deref(), Some(cfg.to_str().unwrap()));
         assert_eq!(entry.params["dim"], 384);
@@ -516,7 +516,7 @@ batch_size: 1
         let resolved = mgr
             .resolve(&ModelRef::Name("m1".to_string()), Some(cfg.to_str().unwrap()), None, None)
             .unwrap();
-        let entry = resolved.entry.as_ref().expect("应命中条目");
+        let entry = resolved.entry.as_ref().expect("should match entry");
         // 显式 config 替换条目 config_url 并解析（拍平后 overlap/batch_size 可见，
         // 且条目内嵌 default_k 保留）
         assert_eq!(entry.config_url.as_deref(), Some(cfg.to_str().unwrap()));

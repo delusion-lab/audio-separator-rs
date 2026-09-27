@@ -74,7 +74,7 @@ impl WorkerPool {
                 tokio::spawn(async move {
                     let _guard = permit;
                     if let Err(e) = me.run_one(&id).await {
-                        eprintln!("[worker] 任务 {id} 异常: {e}");
+                        eprintln!("[worker] task {id} failed: {e}");
                     }
                 });
             }
@@ -86,7 +86,7 @@ impl WorkerPool {
         let task = self
             .store
             .get(id)
-            .ok_or_else(|| format!("任务不存在: {id}"))?;
+            .ok_or_else(|| format!("task not found: {id}"))?;
         let cancel = task.cancel.clone().unwrap_or_default();
         let (tx, mut rx) = mpsc::channel::<ProgressEvent>(32);
 
@@ -94,7 +94,7 @@ impl WorkerPool {
         self.store
             .update(id, Box::new(|t| {
                 t.status = TaskStatus::Running;
-                t.message = "排队中".to_string();
+                t.message = "queued".to_string();
             }))
             .map_err(|e| e.to_string())?;
 
@@ -123,7 +123,7 @@ impl WorkerPool {
             BackendKind::Mvsep => self
                 .mvsep
                 .clone()
-                .ok_or_else(|| "服务端未配置 MVSEP API Key（config.mvsep.api_key）".to_string())?,
+                .ok_or_else(|| "server has no MVSEP API key configured (config.mvsep.api_key)".to_string())?,
         };
 
         // 输入路径：上传落盘位置（M4 上传即落盘，不保留内存态）
@@ -146,7 +146,7 @@ impl WorkerPool {
             Err(Error::Cancelled) => {
                 self.store.update(id, Box::new(|t| {
                     t.status = TaskStatus::Cancelled;
-                    t.message = "已取消".to_string();
+                    t.message = "cancelled".to_string();
                 }))?;
                 self.fire_webhook(id);
                 return Ok(());
@@ -174,7 +174,7 @@ impl WorkerPool {
         }
         self.store.update(id, Box::new(move |t| {
             t.status = TaskStatus::Done;
-            t.message = format!("完成（{:.1}s）", result.elapsed.as_secs_f64());
+            t.message = format!("done ({:.1}s)", result.elapsed.as_secs_f64());
             t.progress = 1.0;
             t.files = files;
         }))?;
@@ -209,10 +209,10 @@ impl WorkerPool {
             match client.post(&url).json(&body).send().await {
                 Ok(resp) => {
                     if !resp.status().is_success() {
-                        eprintln!("[webhook] 回调 {url} 返回 {}", resp.status());
+                        eprintln!("[webhook] callback {url} returned {}", resp.status());
                     }
                 }
-                Err(e) => eprintln!("[webhook] 回调 {url} 失败: {e}"),
+                Err(e) => eprintln!("[webhook] callback {url} failed: {e}"),
             }
         });
     }
@@ -227,7 +227,7 @@ fn apply_progress(t: &mut crate::store::TaskRecord, ev: &ProgressEvent) {
         }
         ProgressEvent::Download { .. } => {
             t.progress = t.progress.max(0.2);
-            t.message = "下载模型文件…".to_string();
+            t.message = "downloading model file...".to_string();
         }
         ProgressEvent::Process { percent, message } => {
             t.progress = *percent;
@@ -237,23 +237,23 @@ fn apply_progress(t: &mut crate::store::TaskRecord, ev: &ProgressEvent) {
         }
         ProgressEvent::Writing { stem, percent } => {
             t.progress = 0.85 + 0.15 * percent;
-            t.message = format!("写入分轨 {stem}…");
+            t.message = format!("writing stem {stem}...");
         }
         ProgressEvent::Finished => {
             t.progress = 1.0;
-            t.message = "完成".to_string();
+            t.message = "done".to_string();
         }
     }
 }
 
 fn stage_label(s: &str) -> String {
     match s {
-        "resolve_model" => "解析模型".to_string(),
-        "download" => "下载模型文件".to_string(),
-        "convert" => "转换权重格式".to_string(),
-        "load_model" => "加载模型".to_string(),
-        "read_audio" => "读取音频".to_string(),
-        "infer" => "推理中".to_string(),
+        "resolve_model" => "resolving model".to_string(),
+        "download" => "downloading model file".to_string(),
+        "convert" => "converting weights".to_string(),
+        "load_model" => "loading model".to_string(),
+        "read_audio" => "reading audio".to_string(),
+        "infer" => "inferring".to_string(),
         other => other.to_string(),
     }
 }

@@ -39,14 +39,14 @@ impl ModelRef {
     /// 人类可读描述（CLI / 日志用）。
     pub fn describe(&self) -> String {
         match self {
-            ModelRef::Name(name) => format!("模型名「{name}」"),
+            ModelRef::Name(name) => format!("model \"{name}\""),
             ModelRef::Url { url, arch } => match arch {
-                Some(a) => format!("下载链接 {url}（架构 {a}）"),
-                None => format!("下载链接 {url}"),
+                Some(a) => format!("download link {url} (architecture {a})"),
+                None => format!("download link {url}"),
             },
             ModelRef::LocalPath { path, arch } => match arch {
-                Some(a) => format!("本地文件 {}（架构 {a}）", path.display()),
-                None => format!("本地文件 {}", path.display()),
+                Some(a) => format!("local file {} (architecture {a})", path.display()),
+                None => format!("local file {}", path.display()),
             },
         }
     }

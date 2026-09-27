@@ -93,23 +93,23 @@ fn align8(x: u64) -> u64 {
 pub fn validate(path: &Path) -> Result<()> {
     let data = std::fs::read(path)?;
     if data.len() < 8 {
-        return Err(Error::Model("safetensors 文件过短".to_string()));
+        return Err(Error::Model("safetensors file too short".to_string()));
     }
     let header_len = u64::from_le_bytes(data[..8].try_into().unwrap()) as usize;
     let header_bytes = &data[8..8 + header_len];
     let header: serde_json::Value = serde_json::from_slice(header_bytes)?;
     let obj = header
         .as_object()
-        .ok_or_else(|| Error::Model("safetensors header 非对象".to_string()))?;
+        .ok_or_else(|| Error::Model("safetensors header is not an object".to_string()))?;
     for (name, v) in obj {
         let offsets = v
             .get("data_offsets")
             .and_then(|o| o.as_array())
-            .ok_or_else(|| Error::Model(format!("{name} 缺 data_offsets")))?;
+            .ok_or_else(|| Error::Model(format!("{name} missing data_offsets")))?;
         let start = offsets[0].as_u64().unwrap_or(0) as usize;
         let end = offsets[1].as_u64().unwrap_or(0) as usize;
         if end > data.len() || start >= end {
-            return Err(Error::Model(format!("{name} 偏移越界")));
+            return Err(Error::Model(format!("{name} offsets out of bounds")));
         }
     }
     Ok(())

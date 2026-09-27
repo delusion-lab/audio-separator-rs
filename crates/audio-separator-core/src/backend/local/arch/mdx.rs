@@ -129,11 +129,11 @@ impl MdxParams {
 
     fn validate(&mut self) -> Result<()> {
         if self.overlap < 0.0 || self.overlap >= 1.0 {
-            return Err(Error::Model(format!("mdx 参数 overlap 非法: {}", self.overlap)));
+            return Err(Error::Model(format!("invalid mdx overlap param: {}", self.overlap)));
         }
         if self.n_fft < 8 || self.hop < 1 || self.hop >= self.n_fft {
             return Err(Error::Model(format!(
-                "mdx 参数非法: n_fft={} hop={}",
+                "invalid mdx params: n_fft={} hop={}",
                 self.n_fft, self.hop
             )));
         }
@@ -165,7 +165,7 @@ pub fn separate_mdx(
     const CH: usize = 2;
     let frames_total = input.len() / CH;
     if frames_total == 0 {
-        return Err(Error::Format("输入音频为空".to_string()));
+        return Err(Error::Format("input audio is empty".to_string()));
     }
     let seg = params.segment_samples();
     let hop_seg = ((seg as f32 * (1.0 - params.overlap)).max(1.0)) as usize;
@@ -216,11 +216,11 @@ pub fn separate_mdx(
         let outputs = session.run(arr.into_dyn())?;
         let out = outputs
             .first()
-            .ok_or_else(|| Error::Backend("模型无输出".to_string()))?;
+            .ok_or_else(|| Error::Backend("model produced no output".to_string()))?;
         let shape = out.shape().to_vec();
         if shape.len() != 4 || shape[0] != 1 || shape[2] != dim_f || shape[3] != frames {
             return Err(Error::Backend(format!(
-                "MDX 输出形状异常: {shape:?}（期望 [1, 2 或 4, {dim_f}, {frames}]）"
+                "unexpected MDX output shape: {shape:?} (expected [1, 2 or 4, {dim_f}, {frames}])"
             )));
         }
         // 复数 mask：v = out[0,0]+j out[0,1]；i = out[0,2]+j out[0,3]
@@ -237,7 +237,7 @@ pub fn separate_mdx(
                 let v_im = mask_plane(out, 1);
                 (v_re.clone(), v_im.clone(), one_minus(&v_re), neg(&v_im))
             }
-            n => return Err(Error::Backend(format!("MDX 输出通道数异常: {n}"))),
+            n => return Err(Error::Backend(format!("unexpected MDX output channel count: {n}"))),
         };
 
         // masked 频谱：spec * mask（复数相乘，两声道共用 mask）
@@ -370,7 +370,7 @@ fn stft(
             }
             let mut out_buf = vec![Complex::new(0.0, 0.0); n_fft / 2 + 1];
             r2c.process(&mut buf, &mut out_buf)
-                .map_err(|e| Error::Backend(format!("STFT 失败: {e}")))?;
+                .map_err(|e| Error::Backend(format!("STFT failed: {e}")))?;
             frames_out.push(out_buf);
         }
         out.push(frames_out);
@@ -396,7 +396,7 @@ fn istft(frames_in: &[Vec<Complex<f32>>], n_fft: usize, hop: usize) -> Result<Ve
         spec[n_fft / 2].im = 0.0; // Nyquist bin
         let mut time_buf = vec![0.0f32; n_fft];
         c2r.process(&mut spec, &mut time_buf)
-            .map_err(|e| Error::Backend(format!("iSTFT 失败: {e}")))?;
+            .map_err(|e| Error::Backend(format!("iSTFT failed: {e}")))?;
         for i in 0..n_fft {
             let x = time_buf[i] / n_fft as f32; // realfft 逆变换无缩放，补 1/N
             out[t * hop + i] += x * window[i];

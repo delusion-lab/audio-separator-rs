@@ -39,7 +39,7 @@ async fn main() {
                     cfg = match Config::load(std::path::Path::new(p)) {
                         Ok(c) => c,
                         Err(e) => {
-                            eprintln!("配置加载失败（{p}）: {e}");
+                            eprintln!("config load failed ({p}): {e}");
                             std::process::exit(1);
                         }
                     };
@@ -86,7 +86,7 @@ async fn main() {
                 return;
             }
             other => {
-                eprintln!("未知参数: {other}");
+                eprintln!("unknown argument: {other}");
                 eprintln!("{}", usage());
                 std::process::exit(1);
             }
@@ -113,7 +113,7 @@ async fn main() {
     let (local, mvsep) = match worker::build_separators(&cfg) {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("服务启动失败: {e}");
+            eprintln!("server start failed: {e}");
             std::process::exit(1);
         }
     };
@@ -157,30 +157,30 @@ async fn main() {
     let listener = match TcpListener::bind(&cfg.server.addr).await {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("监听 {} 失败: {e}", cfg.server.addr);
+            eprintln!("failed to listen on {}: {e}", cfg.server.addr);
             std::process::exit(1);
         }
     };
     println!(
-        "audio-separator-server 监听 {}（workers={}，auth={}，mvsep={}）",
+        "audio-separator-server listening on {} (workers={}, auth={}, mvsep={})",
         cfg.server.addr,
         cfg.server.workers,
         if cfg.server.auth_token.is_some() { "on" } else { "off" },
         if cfg.mvsep.api_key.is_some() { "enabled" } else { "disabled" },
     );
     if let Err(e) = axum::serve(listener, app).await {
-        eprintln!("服务异常退出: {e}");
+        eprintln!("server exited abnormally: {e}");
         std::process::exit(1);
     }
 }
 
 fn usage() -> &'static str {
     "audio-separator-server [options]\n\
-     \x20 --config <path>    核心配置 TOML\n\
-     \x20 --addr <host:port> 监听地址（默认 127.0.0.1:8080）\n\
-     \x20 --workers <n>      并行任务数（默认 1）\n\
-     \x20 --auth-token <t>   启用 Bearer Token（默认关）\n\
-     \x20 --api-key <k>      MVSEP API Key（或环境变量 ASEP_MVSEP_API_KEY）\n\
-     \x20 --upload-dir <dir> 上传根目录（默认 ./uploads）\n\
-     \x20 --webhook-url <u>  任务终态回调 URL（可选，M5-C）"
+     \x20 --config <path>    core config TOML\n\
+     \x20 --addr <host:port> listen address (default 127.0.0.1:8080)\n\
+     \x20 --workers <n>      parallel tasks (default 1)\n\
+     \x20 --auth-token <t>   enable Bearer Token (default off)\n\
+     \x20 --api-key <k>      MVSEP API key (or env ASEP_MVSEP_API_KEY)\n\
+     \x20 --upload-dir <dir>  upload root (default ./uploads)\n\
+     \x20 --webhook-url <u>   task completion callback URL (optional)"
 }

@@ -15,12 +15,12 @@ pub fn parse_config(text: &str) -> Result<serde_json::Value, Error> {
     let text = strip_python_tags(text);
     let trimmed = text.trim_start();
     if trimmed.starts_with('{') || trimmed.starts_with('[') {
-        serde_json::from_str(&text).map_err(|e| Error::Model(format!("配置 JSON 解析失败: {e}")))
+        serde_json::from_str(&text).map_err(|e| Error::Model(format!("config JSON parse failed: {e}")))
     } else {
         let yaml: serde_yaml::Value = serde_yaml::from_str(&text)
-            .map_err(|e| Error::Model(format!("配置 YAML 解析失败: {e}")))?;
+            .map_err(|e| Error::Model(format!("config YAML parse failed: {e}")))?;
         let json = serde_json::to_value(yaml)
-            .map_err(|e| Error::Model(format!("配置 YAML→JSON 转换失败: {e}")))?;
+            .map_err(|e| Error::Model(format!("config YAML->JSON conversion failed: {e}")))?;
         Ok(flatten_top(&json))
     }
 }
@@ -100,7 +100,7 @@ model:
     #[test]
     fn parse_msst_yaml() {
         let v = parse_config(MSST_YAML).unwrap();
-        let obj = v.as_object().expect("应为对象");
+        let obj = v.as_object().expect("should be an object");
         // 拍平：叶子键直接可见
         assert_eq!(obj["chunk_size"], 352800);
         assert_eq!(obj["dim"], 384);

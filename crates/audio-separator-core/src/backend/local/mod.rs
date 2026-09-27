@@ -87,7 +87,7 @@ impl Separator for LocalSeparator {
             )
         });
         job.await
-            .map_err(|e| Error::Other(format!("本地任务异常: {e}")))?
+            .map_err(|e| Error::Other(format!("local task failed: {e}")))?
     }
 }
 
@@ -109,12 +109,12 @@ fn run_local(
         Input::Path(p) => p.clone(),
         Input::Url(_) => {
             return Err(Error::Backend(
-                "输入 URL 支持将在后续里程碑交付".to_string(),
+                "input URL support will be delivered in a later milestone".to_string(),
             ))
         }
         Input::Bytes(_) => {
             return Err(Error::Backend(
-                "内存输入支持将在服务端里程碑交付".to_string(),
+                "in-memory input support will be delivered with the server milestone".to_string(),
             ))
         }
     };
@@ -196,7 +196,7 @@ fn run_local(
             }
             other => {
                 return Err(Error::Backend(format!(
-                    "架构「{other}」尚未实现（M2 交付 Roformer 家族）"
+                    "architecture \"{other}\" not implemented yet (Roformer family delivered in M2)"
                 )));
             }
         };
@@ -274,7 +274,7 @@ fn ensure_safetensors(
     }
     if !matches!(ext.as_str(), "ckpt" | "pt" | "pth") {
         return Err(Error::Model(format!(
-            "架构「{}」不支持的权重格式 .{ext}（期望 .ckpt/.pt/.pth 或 .safetensors）",
+            "architecture \"{}\" does not support weight format .{ext} (expected .ckpt/.pt/.pth or .safetensors)",
             resolved.architecture
         )));
     }

@@ -29,7 +29,7 @@ pub fn decode(path: &Path) -> Result<DecodedAudio> {
     let file = std::fs::File::open(path).map_err(|e| {
         Error::Io(std::io::Error::new(
             e.kind(),
-            format!("打开音频文件失败 {}: {e}", path.display()),
+            format!("failed to open audio file {}: {e}", path.display()),
         ))
     })?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
@@ -45,16 +45,16 @@ pub fn decode(path: &Path) -> Result<DecodedAudio> {
             &FormatOptions::default(),
             &MetadataOptions::default(),
         )
-        .map_err(|e| Error::Format(format!("无法解析音频 {}: {e}", path.display())))?;
+        .map_err(|e| Error::Format(format!("failed to parse audio {}: {e}", path.display())))?;
     let mut format = probed.format;
 
     let track = format
         .default_track()
-        .ok_or_else(|| Error::Format(format!("音频 {} 没有可用音轨", path.display())))?;
+        .ok_or_else(|| Error::Format(format!("audio {} has no usable track", path.display())))?;
     let track_id = track.id;
     let mut decoder = symphonia::default::get_codecs()
         .make(&track.codec_params, &DecoderOptions::default())
-        .map_err(|e| Error::Format(format!("无法创建解码器: {e}")))?;
+        .map_err(|e| Error::Format(format!("failed to create decoder: {e}")))?;
 
     let mut sample_buf: Option<SampleBuffer<f32>> = None;
     let mut spec: Option<SignalSpec> = None;
@@ -71,7 +71,7 @@ pub fn decode(path: &Path) -> Result<DecodedAudio> {
         }
         let decoded = decoder
             .decode(&packet)
-            .map_err(|e| Error::Format(format!("解码失败: {e}")))?;
+            .map_err(|e| Error::Format(format!("decode failed: {e}")))?;
         let s = decoded.spec();
         spec = Some(*s);
         let channels = s.channels.count();
@@ -89,7 +89,7 @@ pub fn decode(path: &Path) -> Result<DecodedAudio> {
     }
 
     if out.is_empty() {
-        return Err(Error::Format(format!("音频 {} 无解码数据", path.display())));
+        return Err(Error::Format(format!("audio {} produced no decoded data", path.display())));
     }
     let channels = spec.as_ref().map(|s| s.channels.count()).unwrap_or(2) as u16;
     let sample_rate = spec.as_ref().map(|s| s.rate).unwrap_or(44100);
@@ -145,7 +145,7 @@ pub fn resample_to(samples: &[f32], channels: u16, from: u32, to: u32) -> Result
     let ch = channels as usize;
     let frames = samples.len() / ch;
     let mut resampler = SincFixedIn::<f32>::new(ratio, 1.0, params, 4096, ch)
-        .map_err(|e| Error::Backend(format!("创建重采样器失败: {e}")))?;
+        .map_err(|e| Error::Backend(format!("failed to create resampler: {e}")))?;
 
     // 分声道输入
     let mut input: Vec<Vec<f32>> = vec![Vec::with_capacity(frames); ch];
@@ -156,9 +156,9 @@ pub fn resample_to(samples: &[f32], channels: u16, from: u32, to: u32) -> Result
     }
     let out_ch = resampler
         .process(&input, None)
-        .map_err(|e| Error::Backend(format!("重采样失败: {e}")))?;
+        .map_err(|e| Error::Backend(format!("resampling failed: {e}")))?;
     if out_ch.is_empty() || out_ch[0].is_empty() {
-        return Err(Error::Backend("重采样结果为空".to_string()));
+        return Err(Error::Backend("resampling produced no output".to_string()));
     }
     let out_frames = out_ch[0].len();
     let mut out_i = Vec::with_capacity(out_frames * ch);
@@ -191,16 +191,16 @@ pub fn write_wav(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) 
         sample_format: SampleFormat::Int,
     };
     let mut writer = WavWriter::create(path, spec)
-        .map_err(|e| Error::Format(format!("创建 {} 失败: {e}", path.display())))?;
+        .map_err(|e| Error::Format(format!("failed to create {}: {e}", path.display())))?;
     for &s in samples {
         let v = (s.clamp(-1.0, 1.0) * i16::MAX as f32) as i16;
         writer
             .write_sample(v)
-            .map_err(|e| Error::Format(format!("写入 {} 失败: {e}", path.display())))?;
+            .map_err(|e| Error::Format(format!("failed to write {}: {e}", path.display())))?;
     }
     writer
         .finalize()
-        .map_err(|e| Error::Format(format!("完成 {} 失败: {e}", path.display())))?;
+        .map_err(|e| Error::Format(format!("failed to finalize {}: {e}", path.display())))?;
     Ok(())
 }
 
@@ -219,7 +219,7 @@ pub fn write_audio(
         crate::model::OutputFormat::Flac24 => write_flac(path, samples, sample_rate, channels, 24),
         crate::model::OutputFormat::Mp3 => write_mp3(path, samples, sample_rate, channels),
         crate::model::OutputFormat::M4a => Err(Error::Backend(
-            "本地后端暂不支持 M4A 输出（请使用 MVSEP 后端，或改选 wav/flac/mp3）".to_string(),
+            "local backend does not support M4A output yet (use the MVSEP backend, or pick wav/flac/mp3)".to_string(),
         )),
     }
 }
@@ -234,15 +234,15 @@ fn write_wav_f32(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) 
         sample_format: SampleFormat::Float,
     };
     let mut writer = WavWriter::create(path, spec)
-        .map_err(|e| Error::Format(format!("创建 {} 失败: {e}", path.display())))?;
+        .map_err(|e| Error::Format(format!("failed to create {}: {e}", path.display())))?;
     for &s in samples {
         writer
             .write_sample(s.clamp(-1.0, 1.0))
-            .map_err(|e| Error::Format(format!("写入 {} 失败: {e}", path.display())))?;
+            .map_err(|e| Error::Format(format!("failed to write {}: {e}", path.display())))?;
     }
     writer
         .finalize()
-        .map_err(|e| Error::Format(format!("完成 {} 失败: {e}", path.display())))?;
+        .map_err(|e| Error::Format(format!("failed to finalize {}: {e}", path.display())))?;
     Ok(())
 }
 
@@ -273,7 +273,7 @@ fn write_flac(
 
     let config = FlacConfig::default()
         .into_verified()
-        .map_err(|e| Error::Format(format!("FLAC 配置无效: {e:?}")))?;
+        .map_err(|e| Error::Format(format!("invalid FLAC config: {e:?}")))?;
     let source = MemSource::from_samples(
         &i32_samples,
         channels as usize,
@@ -281,20 +281,20 @@ fn write_flac(
         sample_rate as usize,
     );
     let mut stream = flacenc::encode_with_fixed_block_size(&config, source, config.block_size)
-        .map_err(|e| Error::Format(format!("FLAC 编码失败: {e:?}")))?;
+        .map_err(|e| Error::Format(format!("FLAC encoding failed: {e:?}")))?;
     // flacenc 会把 STREAMINFO 的 min_block_size 更新为末帧长度；fixed 块流要求
     // min==max，否则 symphonia 严格帧头校验会拒绝（报 end of stream），这里重置。
     let bs = config.block_size;
     stream
         .stream_info_mut()
         .set_block_sizes(bs, bs)
-        .map_err(|e| Error::Format(format!("FLAC STREAMINFO 重置失败: {e}")))?;
+        .map_err(|e| Error::Format(format!("FLAC STREAMINFO reset failed: {e}")))?;
     let mut sink = ByteSink::with_capacity(stream.count_bits());
     stream
         .write(&mut sink)
-        .map_err(|e| Error::Format(format!("FLAC 位流写入失败: {e:?}")))?;
+        .map_err(|e| Error::Format(format!("FLAC bitstream write failed: {e:?}")))?;
     std::fs::write(path, sink.into_inner())
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("写入 {} 失败: {e}", path.display()))))?;
+        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("failed to write {}: {e}", path.display()))))?;
     Ok(())
 }
 
@@ -310,7 +310,7 @@ fn write_mp3(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) -> R
     let mut encoder = Mp3Encoder::new(config);
     encoder
         .push_pcm_f32(samples, channels, sample_rate)
-        .map_err(|e| Error::Format(format!("MP3 编码输入失败: {e:?}")))?;
+        .map_err(|e| Error::Format(format!("MP3 encoder input failed: {e:?}")))?;
     encoder.finish();
 
     let mut bytes: Vec<u8> = Vec::new();
@@ -319,11 +319,11 @@ fn write_mp3(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) -> R
             Ok(p) => bytes.extend_from_slice(&p),
             Err(Mp3Error::Eof) => break,
             Err(Mp3Error::Again) => continue,
-            Err(e) => return Err(Error::Format(format!("MP3 编码失败: {e:?}"))),
+            Err(e) => return Err(Error::Format(format!("MP3 encoding failed: {e:?}"))),
         }
     }
     std::fs::write(path, bytes)
-        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("写入 {} 失败: {e}", path.display()))))?;
+        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("failed to write {}: {e}", path.display()))))?;
     Ok(())
 }
 #[cfg(test)]

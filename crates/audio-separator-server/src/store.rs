@@ -130,7 +130,7 @@ impl TaskStore for InMemoryTaskStore {
         let mut guard = self.inner.lock().unwrap();
         let task = guard
             .get_mut(id)
-            .ok_or_else(|| format!("任务不存在: {id}"))?;
+            .ok_or_else(|| format!("task not found: {id}"))?;
         f(task);
         task.updated_at = now();
         Ok(())
@@ -143,7 +143,7 @@ impl TaskStore for InMemoryTaskStore {
     }
 
     fn remove(&self, id: &str) -> Result<(), String> {
-        self.inner.lock().unwrap().remove(id).map(|_| ()).ok_or_else(|| format!("任务不存在: {id}"))
+        self.inner.lock().unwrap().remove(id).map(|_| ()).ok_or_else(|| format!("task not found: {id}"))
     }
 }
 

@@ -96,7 +96,7 @@ impl Stft {
     pub fn inverse(&mut self, spectrum: &[Complex32], frames: usize) -> Result<Vec<f32>> {
         let bins = FFT / 2 + 1;
         if spectrum.len() != bins * frames {
-            return Err(Error::Model("Roformer 谱形状不符".to_string()));
+            return Err(Error::Model("Roformer spectrum shape mismatch".to_string()));
         }
         let hop = self.hop;
         let natural = (frames - 1) * hop;
@@ -121,7 +121,7 @@ impl Stft {
         let mut output = vec![0.0f32; natural];
         for i in 0..natural {
             if energy[i + pad] <= 1e-11 {
-                return Err(Error::Model("Roformer 窗重叠存在未覆盖采样点".to_string()));
+                return Err(Error::Model("Roformer window overlap leaves uncovered samples".to_string()));
             }
             output[i] = wave[i + pad] / energy[i + pad];
         }

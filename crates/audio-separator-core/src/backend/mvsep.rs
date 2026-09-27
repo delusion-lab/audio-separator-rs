@@ -137,12 +137,12 @@ impl MvsepClient {
         let mut builder = reqwest::Client::builder().user_agent(USER_AGENT);
         if let Some(p) = resolve_proxy(proxy) {
             let proxy = reqwest::Proxy::all(&p)
-                .map_err(|e| Error::Config(format!("代理配置无效 {p}: {e}")))?;
+                .map_err(|e| Error::Config(format!("invalid proxy config {p}: {e}")))?;
             builder = builder.proxy(proxy);
         }
         let http = builder
             .build()
-            .map_err(|e| Error::Network(format!("构建 HTTP 客户端失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("failed to build HTTP client: {e}")))?;
         Ok(Self {
             http,
             base: cfg.region.base_url().to_string(),
@@ -158,7 +158,7 @@ impl MvsepClient {
             .as_deref()
             .ok_or_else(|| {
                 Error::Config(
-                    "MVSEP 后端需要 API Key：--api-key 参数或环境变量 ASEP_MVSEP_API_KEY"
+                    "MVSEP backend requires an API key: --api-key argument or ASEP_MVSEP_API_KEY env var"
                         .to_string(),
                 )
             })
@@ -173,16 +173,16 @@ impl MvsepClient {
             .multipart(form)
             .send()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP create 请求失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP create request failed: {e}")))?;
         let status = resp.status();
         let body = resp
             .text()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP create 读取响应失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP create response read failed: {e}")))?;
         if !status.is_success() {
             return Err(match status.as_u16() {
-                401 => Error::Config("MVSEP API Key 无效（HTTP 401）".to_string()),
-                400 => Error::Backend(format!("MVSEP 参数错误（HTTP 400）: {body}")),
+                401 => Error::Config("invalid MVSEP API key (HTTP 401)".to_string()),
+                400 => Error::Backend(format!("MVSEP bad request (HTTP 400): {body}")),
                 _ => Error::Network(format!("MVSEP create HTTP {status}: {body}")),
             });
         }
@@ -190,12 +190,12 @@ impl MvsepClient {
         match env.data {
             Some(d) if env.success => d
                 .hash
-                .ok_or_else(|| Error::Backend("MVSEP 创建响应缺少 hash".to_string())),
+                .ok_or_else(|| Error::Backend("MVSEP create response missing hash".to_string())),
             Some(d) => Err(Error::Backend(format!(
-                "MVSEP 创建失败: {}",
+                "MVSEP create failed: {}",
                 d.message.unwrap_or_default()
             ))),
-            None => Err(Error::Backend("MVSEP 创建响应缺少 data".to_string())),
+            None => Err(Error::Backend("MVSEP create response missing data".to_string())),
         }
     }
 
@@ -208,22 +208,22 @@ impl MvsepClient {
             .query(&[("hash", hash)])
             .send()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP get 请求失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP get request failed: {e}")))?;
         let status = resp.status();
         let body = resp
             .text()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP get 读取响应失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP get response read failed: {e}")))?;
         if !status.is_success() {
             return Err(match status.as_u16() {
-                401 => Error::Config("MVSEP API Key 无效（HTTP 401）".to_string()),
+                401 => Error::Config("invalid MVSEP API key (HTTP 401)".to_string()),
                 _ => Error::Network(format!("MVSEP get HTTP {status}: {body}")),
             });
         }
         let env: GetResponse = serde_json::from_str(&body).map_err(Error::Json)?;
         if !env.success {
             return Err(Error::Backend(format!(
-                "MVSEP 查询失败: {}",
+                "MVSEP query failed: {}",
                 env.data
                     .as_ref()
                     .and_then(|d| d.message.clone())
@@ -259,15 +259,15 @@ impl MvsepClient {
             .form(&[("api_token", self.token()?), ("hash", hash)])
             .send()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP cancel 请求失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP cancel request failed: {e}")))?;
         let body = resp
             .text()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP cancel 读取响应失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP cancel response read failed: {e}")))?;
         let env: ApiEnvelope<CreateData> = serde_json::from_str(&body).map_err(Error::Json)?;
         if !env.success {
             return Err(Error::Backend(format!(
-                "MVSEP 取消失败: {}",
+                "MVSEP cancel failed: {}",
                 env.data
                     .and_then(|d| d.message)
                     .unwrap_or_else(|| body)
@@ -285,15 +285,15 @@ impl MvsepClient {
             .form(&[("api_token", self.token()?), ("hash", hash)])
             .send()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP delete 请求失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP delete request failed: {e}")))?;
         let body = resp
             .text()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP delete 读取响应失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP delete response read failed: {e}")))?;
         let env: ApiEnvelope<CreateData> = serde_json::from_str(&body).map_err(Error::Json)?;
         if !env.success {
             return Err(Error::Backend(format!(
-                "MVSEP 删除失败: {}",
+                "MVSEP delete failed: {}",
                 env.data
                     .and_then(|d| d.message)
                     .unwrap_or_else(|| body)
@@ -311,11 +311,11 @@ impl MvsepClient {
             .query(&[("scopes", "single_upload")])
             .send()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP algorithms 请求失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP algorithms request failed: {e}")))?;
         let body = resp
             .text()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP algorithms 读取响应失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP algorithms response read failed: {e}")))?;
         serde_json::from_str(&body).map_err(Error::Json)
     }
 
@@ -328,11 +328,11 @@ impl MvsepClient {
             .query(&[("api_token", self.token()?)])
             .send()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP user 请求失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP user request failed: {e}")))?;
         let body = resp
             .text()
             .await
-            .map_err(|e| Error::Network(format!("MVSEP user 读取响应失败: {e}")))?;
+            .map_err(|e| Error::Network(format!("MVSEP user response read failed: {e}")))?;
         serde_json::from_str(&body).map_err(Error::Json)
     }
 
@@ -354,11 +354,11 @@ impl MvsepClient {
             .get(url)
             .send()
             .await
-            .map_err(|e| Error::Network(format!("下载分轨失败 {url}: {e}")))?;
+            .map_err(|e| Error::Network(format!("stem download failed {url}: {e}")))?;
         let status = resp.status();
         if !status.is_success() {
             return Err(Error::Network(format!(
-                "下载分轨失败 {url}: HTTP {status}"
+                "stem download failed {url}: HTTP {status}"
             )));
         }
         let total = resp.content_length();
@@ -376,7 +376,7 @@ impl MvsepClient {
                 Ok(None) => break,
                 Err(e) => {
                     let _ = tokio::fs::remove_file(&tmp).await;
-                    return Err(Error::Network(format!("下载分轨失败 {url}: {e}")));
+                    return Err(Error::Network(format!("stem download failed {url}: {e}")));
                 }
             };
             use tokio::io::AsyncWriteExt;
@@ -443,7 +443,7 @@ impl MvsepSeparator {
             ModelRef::Name(n) => n,
             ModelRef::Url { .. } | ModelRef::LocalPath { .. } => {
                 return Err(Error::Config(
-                    "MVSEP 后端模型请用名字（清单 mvsep 映射 / 平台算法名）或数字 sep_type；URL / 本地路径形态仅本地后端支持"
+                    "for the MVSEP backend, specify a model by name (manifest mvsep mapping / platform algorithm name) or a numeric sep_type; URL / local path forms are only supported by the local backend"
                         .to_string(),
                 ));
             }
@@ -481,7 +481,7 @@ impl MvsepSeparator {
                 let samples: Vec<String> =
                     algos.iter().take(12).map(|a| a.name.clone()).collect();
                 Err(Error::Model(format!(
-                    "MVSEP 未找到模型「{name}」；平台算法目录含 {} 项，可先运行 `asep models --backend mvsep` 查看。相近条目: {}",
+                    "MVSEP model \"{name}\" not found; the platform algorithm catalog has {} entries - run `asep models --backend mvsep` to list them. Similar entries: {}",
                     algos.len(),
                     samples.join(" / ")
                 )))
@@ -521,7 +521,7 @@ impl MvsepSeparator {
             Input::Path(p) => {
                 let part = Part::file(p)
                     .await
-                    .map_err(|e| Error::Network(format!("读取上传文件 {}: {e}", p.display())))?;
+                    .map_err(|e| Error::Network(format!("failed to read upload file {}: {e}", p.display())))?;
                 form = form.part("audiofile", part);
             }
             Input::Url(u) => {
@@ -550,7 +550,7 @@ impl Separator for MvsepSeparator {
             .semaphore
             .acquire()
             .await
-            .map_err(|_| Error::Other("MVSEP 并发信号量已关闭".to_string()))?;
+            .map_err(|_| Error::Other("MVSEP concurrency semaphore is closed".to_string()))?;
 
         emit(&progress, ProgressEvent::Stage("resolve_model".to_string()));
         let (sep_type, add_opts) = self.resolve_model(&req.model).await?;
@@ -579,20 +579,20 @@ impl Separator for MvsepSeparator {
                 MvsepStatus::Done => break st.files,
                 MvsepStatus::Failed => {
                     return Err(Error::Backend(format!(
-                        "MVSEP 任务失败: {}",
-                        st.message.unwrap_or_else(|| "未知原因".to_string())
+                        "MVSEP task failed: {}",
+                        st.message.unwrap_or_else(|| "unknown reason".to_string())
                     )));
                 }
                 MvsepStatus::NotFound => {
-                    return Err(Error::Backend(format!("MVSEP 任务不存在或已过期: {hash}")));
+                    return Err(Error::Backend(format!("MVSEP task not found or expired: {hash}")));
                 }
                 MvsepStatus::Waiting | MvsepStatus::Processing | MvsepStatus::Distributing
                 | MvsepStatus::Merging => {
                     let msg = match (st.queue_count, st.current_order) {
                         (Some(q), Some(o)) => {
-                            format!("队列中 {o} 号（共 {q} 个待处理）")
+                            format!("in queue at position {o} (of {q} pending)")
                         }
-                        (Some(q), None) => format!("排队中（前方 {q} 个任务）"),
+                        (Some(q), None) => format!("queued (ahead of {q} tasks)"),
                         _ => format!("{:?}", st.status),
                     };
                     let pct = match st.status {
@@ -613,7 +613,7 @@ impl Separator for MvsepSeparator {
             if Instant::now() > deadline {
                 let _ = self.client.cancel(&hash).await;
                 return Err(Error::Quota(format!(
-                    "MVSEP 轮询超时（{:.0}s）后已取消任务 {hash}",
+                    "MVSEP poll timed out ({:.0}s); task {hash} cancelled",
                     self.client.poll_timeout.as_secs_f64()
                 )));
             }

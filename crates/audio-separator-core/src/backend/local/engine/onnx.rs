@@ -35,10 +35,10 @@ impl OnnxSession {
     pub fn load(path: &Path) -> Result<Self> {
         ensure_init()?;
         let mut builder = Session::builder()
-            .map_err(|e| Error::Backend(format!("创建 ONNX Runtime 会话构建器失败: {e}")))?;
+            .map_err(|e| Error::Backend(format!("failed to create ONNX Runtime session builder: {e}")))?;
         let session = builder
             .commit_from_file(path)
-            .map_err(|e| Error::Backend(format!("加载 ONNX 模型 {} 失败: {e}", path.display())))?;
+            .map_err(|e| Error::Backend(format!("failed to load ONNX model {}: {e}", path.display())))?;
         let input_name = session
             .inputs()
             .first()
@@ -58,18 +58,18 @@ impl OnnxSession {
     /// 运行推理：输入按模型第一个输入名绑定，返回所有输出（保持输出顺序）。
     pub fn run(&mut self, input: ArrayD<f32>) -> Result<Vec<ArrayD<f32>>> {
         let value =
-            Value::from_array(input).map_err(|e| Error::Backend(format!("构造输入张量失败: {e}")))?;
+            Value::from_array(input).map_err(|e| Error::Backend(format!("failed to build input tensor: {e}")))?;
         let inputs = ort::inputs![self.input_name.as_str() => value];
         let outputs = self
             .session
             .run(inputs)
-            .map_err(|e| Error::Backend(format!("推理失败: {e}")))?;
+            .map_err(|e| Error::Backend(format!("inference failed: {e}")))?;
         outputs
             .iter()
             .map(|(_, v)| {
                 v.try_extract_array::<f32>()
                     .map(|x| x.to_owned())
-                    .map_err(|e| Error::Backend(format!("读取推理输出失败: {e}")))
+                    .map_err(|e| Error::Backend(format!("failed to read inference output: {e}")))
             })
             .collect()
     }

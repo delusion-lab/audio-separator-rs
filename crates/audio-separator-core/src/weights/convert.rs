@@ -19,7 +19,7 @@ pub fn convert_ckpt_to_safetensors(ckpt: &Path, out: &Path) -> Result<()> {
         let storage = rec
             .storage
             .as_ref()
-            .ok_or_else(|| Error::Model(format!("{name} 缺少 storage")))?;
+            .ok_or_else(|| Error::Model(format!("{name} missing storage")))?;
         let raw = archive.read_storage(&storage.id)?;
         let bytes = materialize(&raw, rec, storage.dtype, big_endian)?;
         // fp16 权重在 materialize 内已转 fp32（统一 safetensors 为 F32）。
@@ -46,7 +46,7 @@ fn materialize(storage: &[u8], rec: &TensorRec, dtype: Dtype, big_endian: bool) 
     let numel = rec.storage.as_ref().map(|s| s.numel).unwrap_or(0);
     if rec.offset as u64 + elem > numel {
         return Err(Error::Model(format!(
-            "权重越界: offset={} elem={} numel={}",
+            "weight out of bounds: offset={} elem={} numel={}",
             rec.offset, elem, numel
         )));
     }
@@ -54,7 +54,7 @@ fn materialize(storage: &[u8], rec: &TensorRec, dtype: Dtype, big_endian: bool) 
     let start = rec.offset as u64 * width;
     if start as usize + total as usize > storage.len() {
         return Err(Error::Model(format!(
-            "分片数据不足: 需 {} 字节，有 {}",
+            "shard data too short: need {} bytes, have {}",
             start + total,
             storage.len()
         )));

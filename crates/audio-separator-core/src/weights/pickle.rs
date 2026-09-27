@@ -114,7 +114,7 @@ struct Vm<'a> {
 }
 
 macro_rules! bail {
-    ($($t:tt)*) => { return Err(Error::Model(format!("pickle 解析失败: {}", format!($($t)*)))) };
+    ($($t:tt)*) => { return Err(Error::Model(format!("pickle parse failed: {}", format!($($t)*)))) };
 }
 
 impl<'a> Vm<'a> {
@@ -122,7 +122,7 @@ impl<'a> Vm<'a> {
         let b = *self
             .data
             .get(self.pos)
-            .ok_or_else(|| Error::Model("pickle 数据截断".to_string()))?;
+            .ok_or_else(|| Error::Model("pickle data truncated".to_string()))?;
         self.pos += 1;
         Ok(b)
     }
@@ -130,7 +130,7 @@ impl<'a> Vm<'a> {
         let s = self
             .data
             .get(self.pos..self.pos + n)
-            .ok_or_else(|| Error::Model("pickle 数据截断".to_string()))?;
+            .ok_or_else(|| Error::Model("pickle data truncated".to_string()))?;
         self.pos += n;
         Ok(s)
     }
@@ -158,7 +158,7 @@ impl<'a> Vm<'a> {
     fn pop(&mut self) -> Result<Value> {
         self.stack.pop().ok_or_else(|| {
             Error::Model(format!(
-                "pickle 栈下溢 (opcode: {}) @pos={}",
+                "pickle stack underflow (opcode: {}) @pos={}",
                 self.last_op, self.pos
             ))
         })
@@ -187,7 +187,7 @@ impl<'a> Vm<'a> {
                 b'.' => {
                     // STOP
                     if self.stack.len() != 1 {
-                        bail!("STOP 时栈非单元素: {}", self.stack.len());
+                        bail!("STOP with non-single-element stack: {}", self.stack.len());
                     }
                     return Ok(self.pop()?);
                 }
@@ -197,7 +197,7 @@ impl<'a> Vm<'a> {
                 }
                 b'1' => {
                     // POP_MARK：丢弃到最近 MARK
-                    let m = marks.pop().ok_or_else(|| Error::Model("POP_MARK 缺 MARK".into()))?;
+                    let m = marks.pop().ok_or_else(|| Error::Model("POP_MARK missing MARK".into()))?;
                     self.stack.truncate(m);
                 }
                 b'2' => {
@@ -210,13 +210,13 @@ impl<'a> Vm<'a> {
                     let line = self.read_ascii_line()?;
                     let f: f64 = line
                         .parse()
-                        .map_err(|_| Error::Model("FLOAT 解析失败".into()))?;
+                        .map_err(|_| Error::Model("FLOAT parse failed".into()))?;
                     self.push(Value::Float(f));
                 }
                 b'I' => {
                     let line = self.read_ascii_line()?;
                     let i: i64 = line.trim_end_matches('L').parse().map_err(|_| {
-                        Error::Model("INT 解析失败".to_string())
+                        Error::Model("INT parse failed".to_string())
                     })?;
                     self.push(Value::Int(i));
                 }
@@ -232,7 +232,7 @@ impl<'a> Vm<'a> {
                 b'L' => {
                     let line = self.read_ascii_line()?;
                     let i: i64 = line.trim_end_matches('L').parse().map_err(|_| {
-                        Error::Model("LONG 解析失败".to_string())
+                        Error::Model("LONG parse failed".to_string())
                     })?;
                     self.push(Value::Int(i));
                 }
@@ -243,7 +243,7 @@ impl<'a> Vm<'a> {
                 b'N' => self.push(Value::None),
                 b'P' => {
                     // PERSID（ASCII 持久 id）——torch 存档一般不用，安全拒绝
-                    bail!("PERSID 不支持");
+                    bail!("PERSID not supported");
                 }
                 b'Q' => {
                     // BINPERSID：torch 2.x persistent id 为 5 元组
@@ -257,17 +257,17 @@ impl<'a> Vm<'a> {
                             };
                             let id = items[2]
                                 .as_str()
-                                .ok_or_else(|| Error::Model("persistent root_key 非字符串".into()))?
+                                .ok_or_else(|| Error::Model("persistent root_key not a string".into()))?
                                 .to_string();
                             let device = items[3]
                                 .as_str()
-                                .ok_or_else(|| Error::Model("persistent location 非字符串".into()))?
+                                .ok_or_else(|| Error::Model("persistent location not a string".into()))?
                                 .to_string();
                             let numel = items[4]
                                 .as_int()
-                                .ok_or_else(|| Error::Model("persistent numel 非整数".into()))?;
+                                .ok_or_else(|| Error::Model("persistent numel not an integer".into()))?;
                             if numel < 0 {
-                                bail!("persistent numel 为负");
+                                bail!("persistent numel is negative");
                             }
                             (id, device, numel as u64, dtype)
                         }
@@ -275,15 +275,15 @@ impl<'a> Vm<'a> {
                         Value::Tuple(items) if items.len() == 3 => {
                             let id = items[0]
                                 .as_str()
-                                .ok_or_else(|| Error::Model("persistent id 非字符串".into()))?
+                                .ok_or_else(|| Error::Model("persistent id not a string".into()))?
                                 .to_string();
                             let device = items[1]
                                 .as_str()
-                                .ok_or_else(|| Error::Model("persistent device 非字符串".into()))?
+                                .ok_or_else(|| Error::Model("persistent device not a string".into()))?
                                 .to_string();
                             let numel = items[2]
                                 .as_int()
-                                .ok_or_else(|| Error::Model("persistent numel 非整数".into()))?;
+                                .ok_or_else(|| Error::Model("persistent numel not an integer".into()))?;
                             let dtype = self
                                 .stack
                                 .iter()
@@ -298,7 +298,7 @@ impl<'a> Vm<'a> {
                             (id, device, numel as u64, dtype)
                         }
                         Value::Str(id) => (id.clone(), "cpu".to_string(), 0, Dtype::F32),
-                        other => bail!("BINPERSID 形状不符: {other:?}"),
+                        other => bail!("BINPERSID shape mismatch: {other:?}"),
                     };
                     self.push(Value::Storage(Storage {
                         id,
@@ -336,7 +336,7 @@ impl<'a> Vm<'a> {
                     let n = self.u32_le()? as usize;
                     let b = self.take(n)?;
                     let s = std::str::from_utf8(b)
-                        .map_err(|_| Error::Model("BINUNICODE 非 UTF-8".into()))?;
+                        .map_err(|_| Error::Model("BINUNICODE not UTF-8".into()))?;
                     self.push(Value::Str(s.to_string()));
                 }
                 b'a' => {
@@ -345,7 +345,7 @@ impl<'a> Vm<'a> {
                     let mut list = self.pop()?;
                     match &mut list {
                         Value::List(l) => l.push(v),
-                        _ => bail!("APPEND 目标非 list"),
+                        _ => bail!("APPEND target is not a list"),
                     }
                     self.push(list);
                 }
@@ -361,7 +361,7 @@ impl<'a> Vm<'a> {
                         (obj_v, Value::None) => {
                             let _ = obj_v;
                         }
-                        _ => bail!("BUILD 类型不匹配"),
+                        _ => bail!("BUILD type mismatch"),
                     }
                     self.push(obj);
                 }
@@ -374,7 +374,7 @@ impl<'a> Vm<'a> {
                 }
                 b'd' => {
                     // DICT：MARK 间键值对建 dict
-                    let m = marks.pop().ok_or_else(|| Error::Model("DICT 缺 MARK".into()))?;
+                    let m = marks.pop().ok_or_else(|| Error::Model("DICT missing MARK".into()))?;
                     let items: Vec<Value> = self.stack.split_off(m);
                     let mut d = Vec::new();
                     let mut it = items.into_iter();
@@ -385,12 +385,12 @@ impl<'a> Vm<'a> {
                 }
                 b'e' => {
                     // APPENDS
-                    let m = marks.pop().ok_or_else(|| Error::Model("APPENDS 缺 MARK".into()))?;
+                    let m = marks.pop().ok_or_else(|| Error::Model("APPENDS missing MARK".into()))?;
                     let items: Vec<Value> = self.stack.split_off(m);
                     let mut list = self.pop()?;
                     match &mut list {
                         Value::List(l) => l.extend(items),
-                        _ => bail!("APPENDS 目标非 list"),
+                        _ => bail!("APPENDS target is not a list"),
                     }
                     self.push(list);
                 }
@@ -399,12 +399,12 @@ impl<'a> Vm<'a> {
                     let line = self.read_ascii_line()?;
                     let i: usize = line
                         .parse()
-                        .map_err(|_| Error::Model("GET 索引解析失败".into()))?;
+                        .map_err(|_| Error::Model("GET index parse failed".into()))?;
                     let v = self
                         .memo
                         .get(i)
                         .cloned()
-                        .ok_or_else(|| Error::Model(format!("GET 未命中 memo[{i}]")))?;
+                        .ok_or_else(|| Error::Model(format!("GET miss in memo[{i}]")))?;
                     self.push(v);
                 }
                 b'h' => {
@@ -414,11 +414,11 @@ impl<'a> Vm<'a> {
                         .memo
                         .get(i)
                         .cloned()
-                        .ok_or_else(|| Error::Model(format!("BINGET 未命中 memo[{i}]")))?;
+                        .ok_or_else(|| Error::Model(format!("BINGET miss in memo[{i}]")))?;
                     self.push(v);
                 }
                 b'i' => {
-                    bail!("INST 不支持（白名单外实例化）");
+                    bail!("INST not supported (instantiation outside whitelist)");
                 }
                 b'j' => {
                     // LONG_BINGET
@@ -427,24 +427,24 @@ impl<'a> Vm<'a> {
                         .memo
                         .get(i)
                         .cloned()
-                        .ok_or_else(|| Error::Model(format!("LONG_BINGET 未命中 memo[{i}]")))?;
+                        .ok_or_else(|| Error::Model(format!("LONG_BINGET miss in memo[{i}]")))?;
                     self.push(v);
                 }
                 b'l' => {
                     // LIST
-                    let m = marks.pop().ok_or_else(|| Error::Model("LIST 缺 MARK".into()))?;
+                    let m = marks.pop().ok_or_else(|| Error::Model("LIST missing MARK".into()))?;
                     let items: Vec<Value> = self.stack.split_off(m);
                     self.push(Value::List(items));
                 }
                 b'o' => {
-                    bail!("OBJ 不支持（白名单外实例化）");
+                    bail!("OBJ not supported (instantiation outside whitelist)");
                 }
                 b'p' => {
                     // PUT（ASCII 索引）
                     let line = self.read_ascii_line()?;
                     let i: usize = line
                         .parse()
-                        .map_err(|_| Error::Model("PUT 索引解析失败".into()))?;
+                        .map_err(|_| Error::Model("PUT index parse failed".into()))?;
                     let v = self.pop()?;
                     if self.memo.len() <= i {
                         self.memo.resize(i + 1, Value::None);
@@ -479,19 +479,19 @@ impl<'a> Vm<'a> {
                     let mut d = self.pop()?;
                     match &mut d {
                         Value::Dict(dd) => dd.push((k, v)),
-                        _ => bail!("SETITEM 目标非 dict"),
+                        _ => bail!("SETITEM target is not a dict"),
                     }
                     self.push(d);
                 }
                 b't' => {
                     // TUPLE
-                    let m = marks.pop().ok_or_else(|| Error::Model("TUPLE 缺 MARK".into()))?;
+                    let m = marks.pop().ok_or_else(|| Error::Model("TUPLE missing MARK".into()))?;
                     let items: Vec<Value> = self.stack.split_off(m);
                     self.push(Value::Tuple(items));
                 }
                 b'u' => {
                     // SETITEMS
-                    let m = marks.pop().ok_or_else(|| Error::Model("SETITEMS 缺 MARK".into()))?;
+                    let m = marks.pop().ok_or_else(|| Error::Model("SETITEMS missing MARK".into()))?;
                     let items: Vec<Value> = self.stack.split_off(m);
                     let mut d = self.pop()?;
                     match &mut d {
@@ -501,7 +501,7 @@ impl<'a> Vm<'a> {
                                 dd.push((k, v));
                             }
                         }
-                        _ => bail!("SETITEMS 目标非 dict"),
+                        _ => bail!("SETITEMS target is not a dict"),
                     }
                     self.push(d);
                 }
@@ -522,7 +522,7 @@ impl<'a> Vm<'a> {
                 0x80 => {
                     let v = self.u8_le()?;
                     if v > 4 {
-                        bail!("不支持的 pickle 协议版本 {v}");
+                        bail!("unsupported pickle protocol version {v}");
                     }
                 }
                 b'(' => marks.push(self.stack.len()), // MARK（协议 1/2 通用）
@@ -572,7 +572,7 @@ impl<'a> Vm<'a> {
                 0x95 => {
                     let _len = self.u64_le()?;
                 }
-                other => bail!("不支持的 pickle opcode {op_name}(0x{other:02x})"),
+                other => bail!("unsupported pickle opcode {op_name}(0x{other:02x})"),
             }
         }
     }
@@ -583,10 +583,10 @@ impl<'a> Vm<'a> {
             self.pos += 1;
         }
         if self.pos >= self.data.len() {
-            return Err(Error::Model("ASCII 行未终止".to_string()));
+            return Err(Error::Model("unterminated ASCII line".to_string()));
         }
         let s = std::str::from_utf8(&self.data[start..self.pos])
-            .map_err(|_| Error::Model("ASCII 行非 ASCII".to_string()))?
+            .map_err(|_| Error::Model("ASCII line is not ASCII".to_string()))?
             .to_string();
         self.pos += 1; // 跳过 \n
         Ok(s)
@@ -599,7 +599,7 @@ impl<'a> Vm<'a> {
         };
         let args_vec = match args {
             Value::Tuple(t) | Value::List(t) => t.clone(),
-            _ => bail!("REDUCE 参数非 tuple"),
+            _ => bail!("REDUCE argument is not a tuple"),
         };
         match name.as_str() {
             "collections OrderedDict" => {
@@ -631,7 +631,7 @@ impl<'a> Vm<'a> {
                     }
                 }
                 if tuples.len() < 2 {
-                    bail!("_rebuild_tensor_v2 缺 size/stride");
+                    bail!("_rebuild_tensor_v2 missing size/stride");
                 }
                 let size = tuples[0].iter().map(|&x| x as u64).collect::<Vec<_>>();
                 let stride = tuples[1].iter().map(|&x| x as u64).collect::<Vec<_>>();
@@ -679,7 +679,7 @@ impl<'a> Vm<'a> {
             "builtins list" => Ok(Value::List(Vec::new())),
             "builtins set" => Ok(Value::Tuple(Vec::new())),
             "builtins frozenset" => Ok(Value::Tuple(Vec::new())),
-            _ => bail!("白名单外 GLOBAL: {name} (callable={callable:?})"),
+            _ => bail!("GLOBAL outside whitelist: {name} (callable={callable:?})"),
         }
     }
 
@@ -692,7 +692,7 @@ impl<'a> Vm<'a> {
             "collections OrderedDict" => self.reduce(cls, args),
             "builtins dict" => self.reduce(cls, args),
             "builtins list" => self.reduce(cls, args),
-            _ => bail!("NEWOBJ 白名单外: {name}"),
+            _ => bail!("NEWOBJ outside whitelist: {name}"),
         }
     }
 }

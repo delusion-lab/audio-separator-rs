@@ -64,36 +64,36 @@ pub struct Safetensors {
 impl Safetensors {
     pub fn load(path: &std::path::Path, device: &Device) -> Result<Self> {
         let bytes = std::fs::read(path)
-            .map_err(|e| Error::Model(format!("读取 safetensors 失败: {e}")))?;
+            .map_err(|e| Error::Model(format!("failed to read safetensors: {e}")))?;
         let header_len = u64::from_le_bytes(bytes[..8].try_into().unwrap()) as usize;
         let header: serde_json::Value = serde_json::from_slice(&bytes[8..8 + header_len])
-            .map_err(|e| Error::Model(format!("safetensors header 解析失败: {e}")))?;
+            .map_err(|e| Error::Model(format!("failed to parse safetensors header: {e}")))?;
         let data = &bytes[8 + header_len..];
         let mut values = HashMap::with_capacity(header.as_object().map_or(0, |o| o.len()));
         for (name, meta) in header
             .as_object()
-            .ok_or_else(|| Error::Model("header 非对象".into()))?
+            .ok_or_else(|| Error::Model("header is not an object".into()))?
         {
             let dtype = meta["dtype"]
                 .as_str()
-                .ok_or_else(|| Error::Model("缺 dtype".into()))?;
+                .ok_or_else(|| Error::Model("missing dtype".into()))?;
             if dtype != "F32" {
-                return Err(Error::Model(format!("{name}: 仅支持 F32, 实际 {dtype}")));
+                return Err(Error::Model(format!("{name}: only F32 supported, got {dtype}")));
             }
             let shape: Vec<usize> = meta["shape"]
                 .as_array()
-                .ok_or_else(|| Error::Model("缺 shape".into()))?
+                .ok_or_else(|| Error::Model("missing shape".into()))?
                 .iter()
                 .map(|v| v.as_u64().unwrap() as usize)
                 .collect();
             let offsets = meta["data_offsets"]
                 .as_array()
-                .ok_or_else(|| Error::Model("缺 offsets".into()))?;
+                .ok_or_else(|| Error::Model("missing offsets".into()))?;
             let start = offsets[0].as_u64().unwrap() as usize;
             let end = offsets[1].as_u64().unwrap() as usize;
             let raw = &data[start..end];
             if raw.len() != shape.iter().product::<usize>() * 4 {
-                return Err(Error::Model(format!("{name}: 数据长度不符")));
+                return Err(Error::Model(format!("{name}: data length mismatch")));
             }
             let vec: Vec<f32> = raw
                 .chunks_exact(4)
@@ -113,18 +113,18 @@ impl Safetensors {
     pub(crate) fn tensor(&self, name: &str) -> Result<&Tensor> {
         self.values
             .get(name)
-            .ok_or_else(|| Error::Model(format!("缺少权重: {name}")))
+            .ok_or_else(|| Error::Model(format!("missing weight: {name}")))
     }
 
     /// 读取并校验形状，转为 f32 向量（用于 norm/pope 等标量参数）。
     pub(crate) fn vec1(&self, name: &str, expected: usize) -> Result<Vec<f32>> {
         let t = self.tensor(name)?;
         if t.dims() != [expected] {
-            return Err(Error::Model(format!("{name}: 形状不符 {:?}", t.dims())));
+            return Err(Error::Model(format!("{name}: shape mismatch {:?}", t.dims())));
         }
         let v = t.to_vec1::<f32>()?;
         if v.iter().any(|x| !x.is_finite()) {
-            return Err(Error::Model(format!("{name}: 权重含非有限值")));
+            return Err(Error::Model(format!("{name}: weight contains non-finite values")));
         }
         Ok(v)
     }
@@ -133,11 +133,11 @@ impl Safetensors {
     pub(crate) fn vec2(&self, name: &str, rows: usize, cols: usize) -> Result<Vec<f32>> {
         let t = self.tensor(name)?;
         if t.dims() != [rows, cols] {
-            return Err(Error::Model(format!("{name}: 形状不符 {:?}", t.dims())));
+            return Err(Error::Model(format!("{name}: shape mismatch {:?}", t.dims())));
         }
         let v = t.flatten_all()?.to_vec1::<f32>()?;
         if v.iter().any(|x| !x.is_finite()) {
-            return Err(Error::Model(format!("{name}: 权重含非有限值")));
+            return Err(Error::Model(format!("{name}: weight contains non-finite values")));
         }
         Ok(v)
     }
@@ -146,14 +146,14 @@ impl Safetensors {
         let weight = self.tensor(&format!("{prefix}.weight"))?;
         if weight.dims() != [output, input] {
             return Err(Error::Model(format!(
-                "{prefix}.weight: 形状不符 {:?}",
+                "{prefix}.weight: shape mismatch {:?}",
                 weight.dims()
             )));
         }
         let bias_t = if bias {
             let b = self.tensor(&format!("{prefix}.bias"))?;
             if b.dims() != [output] {
-                return Err(Error::Model(format!("{prefix}.bias: 形状不符")));
+                return Err(Error::Model(format!("{prefix}.bias: shape mismatch")));
             }
             Some(b.clone())
         } else {
@@ -545,7 +545,7 @@ impl BsPolarformer {
         let total = st.len();
         if consumed != total {
             return Err(Error::Model(format!(
-                "权重消费数不符: 期望 {total}, 已消费 {consumed}"
+                "weight consumption mismatch: expected {total}, consumed {consumed}"
             )));
         }
         Ok(Self {
@@ -597,12 +597,12 @@ impl BsPolarformer {
     pub fn predict_window(&self, audio: &[f32], samples: usize) -> Result<Vec<f32>> {
         if samples <= FFT / 2 || samples > CHUNK || samples % HOP != 0 || audio.len() != 2 * samples {
             return Err(Error::Model(format!(
-                "bs_polarformer 期望立体声窗口（samples 被 {HOP} 整除）1025..={samples}<={CHUNK}, 实际 {}",
+                "bs_polarformer expects stereo window (samples divisible by {HOP}) 1025..={samples}<={CHUNK}, got {}",
                 audio.len()
             )));
         }
         if audio.iter().any(|v| !v.is_finite()) {
-            return Err(Error::Model("音频含非有限值".into()));
+            return Err(Error::Model("audio contains non-finite values".into()));
         }
         let frames = samples / HOP + 1;
         let (time_batch, frequency_batch) = self.batch_sizes();
@@ -613,7 +613,7 @@ impl BsPolarformer {
         for channel in audio.chunks_exact(samples) {
             let spec = prec.forward(channel)?;
             if spec.iter().any(|v| !v.re.is_finite() || !v.im.is_finite()) {
-                return Err(Error::Model("Roformer 谱含非有限值".into()));
+                return Err(Error::Model("Roformer spectrum contains non-finite values".into()));
             }
             spectra.push(spec);
         }
@@ -649,11 +649,11 @@ impl BsPolarformer {
             x = time.forward_batches(&x, time_batch)?;
             let freq_in = x
                 .permute((0, 2, 1, 3))
-                .map_err(|e| Error::Model(format!("swap dims: {e}")))?; // [1, frames, bands, DIM]
+                .map_err(|e| Error::Model(format!("swap dims failed: {e}")))?; // [1, frames, bands, DIM]
             x = frequency.forward_batches(&freq_in, frequency_batch)?;
             x = x
                 .permute((0, 2, 1, 3))
-                .map_err(|e| Error::Model(format!("swap dims: {e}")))?; // 回 [1, bands, frames, DIM]
+                .map_err(|e| Error::Model(format!("swap dims failed: {e}")))?; // 回 [1, bands, frames, DIM]
         }
         // 4) final norm
         x = rms_norm(&x, &self.final_norm, DIM)?;
@@ -675,7 +675,7 @@ impl BsPolarformer {
                 .to_vec1::<f32>()
                 .map_err(|e| Error::Model(format!("mask read: {e}")))?;
             if mask.iter().any(|v| !v.is_finite()) {
-                return Err(Error::Model("Roformer mask 含非有限值".into()));
+                return Err(Error::Model("Roformer mask contains non-finite values".into()));
             }
             for frame in 0..frames {
                 for bin in 0..bins_band {
@@ -698,7 +698,7 @@ impl BsPolarformer {
             output.extend(stft.inverse(spectrum, frames)?);
         }
         if output.len() != 2 * output_samples || output.iter().any(|v| !v.is_finite()) {
-            return Err(Error::Model("Roformer 输出波形无效".into()));
+            return Err(Error::Model("Roformer output waveform invalid".into()));
         }
         Ok(output)
     }
@@ -708,7 +708,7 @@ impl BsPolarformer {
     pub fn separate(&self, samples: &[f32], sample_rate: u32) -> Result<(Vec<f32>, Vec<f32>)> {
         if sample_rate != SAMPLE_RATE {
             let resampled = crate::io::resample_to(samples, 2, sample_rate, SAMPLE_RATE)
-                .map_err(|e| Error::Backend(format!("重采样失败: {e}")))?;
+                .map_err(|e| Error::Backend(format!("resampling failed: {e}")))?;
             self.separate_44100(&resampled)
         } else {
             self.separate_44100(samples)
@@ -717,7 +717,7 @@ impl BsPolarformer {
 
     fn separate_44100(&self, samples: &[f32]) -> Result<(Vec<f32>, Vec<f32>)> {
         if samples.len() % 2 != 0 {
-            return Err(Error::Model("交错音频长度必须为偶数".into()));
+            return Err(Error::Model("interleaved audio length must be even".into()));
         }
         let len = samples.len() / 2;
         // 平面声道视图
@@ -773,7 +773,7 @@ impl BsPolarformer {
         for channel in 0..2 {
             for i in 0..samples_len {
                 if !silent && counter[i] <= 0.0 {
-                    return Err(Error::Model("Roformer 调度窗未覆盖样本".into()));
+                    return Err(Error::Model("Roformer schedule window did not cover the samples".into()));
                 }
                 let weight = if silent { 1.0 } else { counter[i] };
                 out_vocals[channel * samples_len + i] =

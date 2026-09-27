@@ -65,7 +65,7 @@ impl IntoResponse for ApiError {
 
 impl From<std::io::Error> for ApiError {
     fn from(e: std::io::Error) -> Self {
-        Self::new(StatusCode::INTERNAL_SERVER_ERROR, format!("IO 错误: {e}"))
+        Self::new(StatusCode::INTERNAL_SERVER_ERROR, format!("IO error: {e}"))
     }
 }
 
@@ -107,7 +107,7 @@ pub async fn separate(
                     if bytes.len() + chunk.len() > max_bytes as usize {
                         return Err(ApiError::new(
                             StatusCode::PAYLOAD_TOO_LARGE,
-                            format!("上传超过大小上限（{} 字节）", max_bytes),
+                            format!("upload exceeds size limit ({} bytes)", max_bytes),
                         ));
                     }
                     bytes.extend_from_slice(&chunk);
@@ -127,7 +127,7 @@ pub async fn separate(
                     "local" => BackendKind::Local,
                     "mvsep" => BackendKind::Mvsep,
                     other => {
-                        return Err(ApiError::bad_request(format!("backend 取值无效: {other}（local|mvsep）")))
+                        return Err(ApiError::bad_request(format!("invalid backend value: {other} (local|mvsep)")))
                     }
                 };
             }
@@ -153,7 +153,7 @@ pub async fn separate(
         }
     }
 
-    let model = model.ok_or_else(|| ApiError::bad_request("缺少必填字段 model"))?;
+    let model = model.ok_or_else(|| ApiError::bad_request("missing required field model"))?;
 
     // 输入形态：上传文件优先；否则 URL。
     let id = uuid::Uuid::new_v4().simple().to_string();
@@ -173,14 +173,14 @@ pub async fn separate(
             .unwrap_or_else(|| "audio.bin".to_string());
         (name, audio_separator_core::backend::Input::Url(url))
     } else {
-        return Err(ApiError::bad_request("缺少输入：需要 audio 文件或 audio_url 字段"));
+        return Err(ApiError::bad_request("missing input: need an audio file or audio_url field"));
     };
 
     // MVSEP 输入 URL 直接透传平台；本地后端不支持 URL（解码需本地文件）。
     if matches!(input_kind, audio_separator_core::backend::Input::Url(_))
         && backend == BackendKind::Local
     {
-        return Err(ApiError::bad_request("本地后端暂不支持 URL 输入（请上传文件）"));
+        return Err(ApiError::bad_request("local backend does not support URL input yet (please upload a file)"));
     }
 
     let input_display = input_name.clone();
@@ -190,7 +190,7 @@ pub async fn separate(
         model: model.clone(),
         status: TaskStatus::Queued,
         progress: 0.0,
-        message: "排队中".to_string(),
+        message: "queued".to_string(),
         created_at: now(),
         updated_at: now(),
         input_name,
@@ -223,7 +223,7 @@ pub async fn task_status(
     State(st): State<Arc<AppState>>,
     AxumPath(id): AxumPath<String>,
 ) -> ApiResult {
-    let task = st.store.get(&id).ok_or_else(|| ApiError::not_found(format!("任务不存在: {id}")))?;
+    let task = st.store.get(&id).ok_or_else(|| ApiError::not_found(format!("task not found: {id}")))?;
     Ok(Json(task_json(&task)).into_response())
 }
 
@@ -233,11 +233,11 @@ pub async fn download(
     AxumPath(id): AxumPath<String>,
     Query(q): Query<DownloadQuery>,
 ) -> ApiResult {
-    let task = st.store.get(&id).ok_or_else(|| ApiError::not_found(format!("任务不存在: {id}")))?;
+    let task = st.store.get(&id).ok_or_else(|| ApiError::not_found(format!("task not found: {id}")))?;
     if task.status != TaskStatus::Done {
         return Err(ApiError::new(
             StatusCode::CONFLICT,
-            format!("任务未完成（当前状态: {:?}）", task.status),
+            format!("task not finished (current status: {:?})", task.status),
         ));
     }
     let stem = q.stem.unwrap_or_else(|| "vocals".to_string());
@@ -245,11 +245,11 @@ pub async fn download(
         .files
         .iter()
         .find(|f| f.name == stem)
-        .ok_or_else(|| ApiError::not_found(format!("任务无分轨「{stem}」（可用: {:?}）", task.files.iter().map(|f| &f.name).collect::<Vec<_>>())))?;
+        .ok_or_else(|| ApiError::not_found(format!("task has no stem \"{stem}\" (available: {:?})", task.files.iter().map(|f| &f.name).collect::<Vec<_>>())))?;
 
     let f = tokio::fs::File::open(&file.path)
         .await
-        .map_err(|e| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, format!("读取输出失败: {e}")))?;
+        .map_err(|e| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, format!("failed to read output: {e}")))?;
     let stream = ReaderStream::new(f);
     let body = Body::from_stream(stream);
     let ext = file.path.extension().map(|e| e.to_string_lossy().into_owned()).unwrap_or_else(|| "bin".to_string());
@@ -276,7 +276,7 @@ pub async fn cancel(
     State(st): State<Arc<AppState>>,
     AxumPath(id): AxumPath<String>,
 ) -> ApiResult {
-    let task = st.store.get(&id).ok_or_else(|| ApiError::not_found(format!("任务不存在: {id}")))?;
+    let task = st.store.get(&id).ok_or_else(|| ApiError::not_found(format!("task not found: {id}")))?;
     match task.status {
         TaskStatus::Queued | TaskStatus::Running => {
             if let Some(c) = &task.cancel {
@@ -286,7 +286,7 @@ pub async fn cancel(
                 .update(&id, Box::new(|t| {
                     if !t.status.is_terminal() {
                         t.status = TaskStatus::Cancelled;
-                        t.message = "已取消".to_string();
+                        t.message = "cancelled".to_string();
                     }
                 }))
                 .map_err(ApiError::from)?;
@@ -313,11 +313,11 @@ pub async fn models(
             let client = st
                 .mvsep_client
                 .as_ref()
-                .ok_or_else(|| ApiError::bad_request("未配置 MVSEP（缺 api_key 或网络不可用）"))?;
+                .ok_or_else(|| ApiError::bad_request("MVSEP not configured (missing api_key or network unavailable)"))?;
             let algos = client
                 .algorithms()
                 .await
-                .map_err(|e| ApiError::new(StatusCode::BAD_GATEWAY, format!("拉取算法目录失败: {e}")))?;
+                .map_err(|e| ApiError::new(StatusCode::BAD_GATEWAY, format!("failed to fetch algorithm catalog: {e}")))?;
             let list: Vec<Value> = algos
                 .iter()
                 .map(|a| {
@@ -330,7 +330,7 @@ pub async fn models(
                 .collect();
             Ok(Json(json!({ "algorithms": list, "count": algos.len() })).into_response())
         }
-        other => Err(ApiError::bad_request(format!("backend 取值无效: {other}"))),
+        other => Err(ApiError::bad_request(format!("invalid backend value: {other}"))),
     }
 }
 
@@ -366,7 +366,7 @@ pub async fn auth(
     } else {
         (
             StatusCode::UNAUTHORIZED,
-            Json(json!({ "error": "未授权：需要 Bearer Token" })),
+            Json(json!({ "error": "unauthorized: Bearer token required" })),
         )
             .into_response()
     }
@@ -419,7 +419,7 @@ fn parse_format(s: &str) -> std::result::Result<OutputFormat, String> {
         "flac24" => Ok(OutputFormat::Flac24),
         "mp3" => Ok(OutputFormat::Mp3),
         "m4a" => Ok(OutputFormat::M4a),
-        other => Err(format!("格式无效: {other}（wav/wav32/flac/flac24/mp3/m4a）")),
+        other => Err(format!("invalid format: {other} (wav/wav32/flac/flac24/mp3/m4a)")),
     }
 }
 

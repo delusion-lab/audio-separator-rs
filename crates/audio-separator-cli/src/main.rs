@@ -1,4 +1,4 @@
-//! asep CLI：音频分离命令行工具。
+//! asep CLI: audio separation command-line tool.
 //!
 //! - `separate`：单次分离（本地后端 M1 起可用；MVSEP 后端 M3 交付）
 //! - `models` / `model-info`：模型清单查询（M1 后半交付）
@@ -19,9 +19,9 @@ use audio_separator_core::model::{ModelRef, OutputFormat};
 use clap::{Parser, Subcommand};
 use tokio::sync::mpsc;
 
-/// 音频分离工具：本地多架构推理 / MVSEP 云 API / HTTP 服务。
+/// Audio separation tool: local multi-architecture inference / MVSEP cloud API / HTTP server.
 #[derive(Parser)]
-#[command(name = "asep", version, about, long_about = None)]
+#[command(name = "asep", version, about = "Audio separation tool: local inference / MVSEP cloud API / HTTP server", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -29,26 +29,26 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// 单次分离一个音频文件（本地或 MVSEP 后端）。
+    /// Separate a single audio file (local or MVSEP backend).
     Separate(SeparateArgs),
 
-    /// 列出可用模型（本地=manifest / mvsep=平台 API）。
+    /// List available models (local = manifest / mvsep = platform API).
     Models {
-        /// 后端。
+        /// Backend.
         #[arg(long, value_enum, default_value_t = BackendArg::Local)]
         backend: BackendArg,
-        /// 覆盖模型清单源：本地 JSON 路径。
+        /// Override model list source: local JSON path.
         #[arg(long)]
         models_file: Option<PathBuf>,
-        /// 覆盖模型清单源：远程 JSON URL。
+        /// Override model list source: remote JSON URL.
         #[arg(long)]
         models_url: Option<String>,
     },
 
-    /// 查看单个模型详情（架构、引擎、分轨、参数、来源）。
+    /// Show model details (architecture, engine, stems, params, source).
     #[command(name = "model-info")]
     ModelInfo {
-        /// 模型名 / 下载 URL / 本地路径。
+        /// Model name / download URL / local path.
         model: String,
         /// 覆盖模型清单源：本地 JSON 路径。
         #[arg(long)]
@@ -58,86 +58,86 @@ enum Command {
         models_url: Option<String>,
     },
 
-    /// 查询任务状态（MVSEP hash 或本地作业 id）。
+    /// Query task status (MVSEP hash or local job id).
     #[command(name = "job-status")]
     JobStatus {
-        /// 任务 hash 或作业 id。
+        /// Task hash or job id.
         id: String,
-        /// MVSEP API Key（查询 MVSEP 任务时）。
+        /// MVSEP API key (when querying MVSEP tasks).
         #[arg(long, env = "ASEP_MVSEP_API_KEY")]
         api_key: Option<String>,
     },
 
-    /// 启动 HTTP 服务（M4 实现）。
+    /// Start the HTTP server.
     Serve(ServeArgs),
 }
 
-/// `separate` 子命令参数。
+/// Arguments for the `separate` subcommand.
 #[derive(clap::Args)]
 struct SeparateArgs {
-    /// 输入音频文件或远程 URL。
+    /// Input audio file or remote URL.
     input: String,
 
-    /// 输出目录。
+    /// Output directory.
     #[arg(short, long)]
     output: PathBuf,
 
-    /// 后端：local / mvsep。
+    /// Backend: local / mvsep.
     #[arg(long, value_enum, default_value_t = BackendArg::Local)]
     backend: BackendArg,
 
-    /// 模型：名字 / 下载 URL / 本地路径（名字命中 manifest 才懒下载）。
+    /// Model: name / download URL / local path (lazy download on first use of a manifest name).
     #[arg(long)]
     model: Option<String>,
 
-    /// 显式指定架构（仅对 URL / 本地路径形态生效；按名字时以 manifest 为准）。
-    /// 取值如 mdx / bs_roformer / mel_band_roformer / bs_polarformer。
+    /// Explicit architecture (only for URL / local path forms; manifest decides for names).
+    /// Values: mdx / bs_roformer / mel_band_roformer / bs_polarformer.
     #[arg(long)]
     arch: Option<String>,
 
-    /// 模型参数配置（yaml/json）的 URL 或本地路径。传了则作为架构参数的权威来源，
-    /// 与 --model 的 URL / 本地路径形态搭配可直接使用，无需 models.json 条目；
-    /// 按名引用时覆盖清单条目的 config_url。
+    /// Model config file (yaml/json) URL or local path. When set, it is the authoritative
+    /// source of architecture params; combined with --model URL / local path it works
+    /// without a models.json entry. When referencing a name, it overrides its config_url.
     #[arg(long)]
     config_url: Option<String>,
 
-    /// 只输出指定分轨（逗号分隔）；分轨全集由所选模型定义。
+    /// Only output selected stems (comma-separated); the full stem set is defined by the model.
     #[arg(long, value_delimiter = ',')]
     stems: Option<Vec<String>>,
 
-    /// 输出格式。
+    /// Output format.
     #[arg(long, value_enum, default_value_t = FormatArg::Wav)]
     format: FormatArg,
 
-    /// MVSEP API Key（backend=mvsep 时必需）。
+    /// MVSEP API key (required when backend=mvsep).
     #[arg(long, env = "ASEP_MVSEP_API_KEY")]
     api_key: Option<String>,
 
-    /// MVSEP 区域。
+    /// MVSEP region.
     #[arg(long, value_enum, default_value_t = RegionArg::Auto)]
     region: RegionArg,
 
-    /// MVSEP 轮询超时（秒）。
+    /// MVSEP polling timeout (seconds).
     #[arg(long)]
     poll_timeout: Option<u64>,
 
-    /// MVSEP 并发任务数（非 Premium 仅 1）。
+    /// MVSEP concurrent tasks (1 for non-Premium).
     #[arg(long)]
     concurrency: Option<usize>,
 
-    /// MVSEP 附加选项 add_opt1（backend=mvsep 时透传，覆盖清单条目映射）。
+    /// MVSEP extra option add_opt1 (passed through when backend=mvsep; overrides manifest mapping).
     #[arg(long)]
     add_opt1: Option<String>,
 
-    /// MVSEP 附加选项 add_opt2。
+    /// MVSEP extra option add_opt2.
     #[arg(long)]
     add_opt2: Option<String>,
 
-    /// MVSEP 附加选项 add_opt3。
+    /// MVSEP extra option add_opt3.
     #[arg(long)]
     add_opt3: Option<String>,
 
-    /// MVSEP 完成回调 URL（处理后平台 POST 结果，免轮询）。
+    /// MVSEP completion callback URL (platform POSTs the result, no polling needed).
     #[arg(long)]
     webhook_url: Option<String>,
 
@@ -149,19 +149,19 @@ struct SeparateArgs {
     #[arg(long)]
     models_url: Option<String>,
 
-    /// 配置文件路径。
+    /// Config file path.
     #[arg(long)]
     config: Option<PathBuf>,
 
-    /// 日志详细程度（可重复）。
+    /// Verbosity (repeatable).
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
 }
 
-/// `serve` 子命令参数。
+/// Arguments for the `serve` subcommand.
 #[derive(clap::Args)]
 struct ServeArgs {
-    /// 监听地址。
+    /// Listen address.
     #[arg(long, default_value = "127.0.0.1:8080")]
     addr: String,
 
@@ -178,17 +178,17 @@ enum BackendArg {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 enum FormatArg {
-    /// 16-bit PCM WAV（默认）。
+    /// 16-bit PCM WAV (default).
     Wav,
-    /// 32-bit float WAV。
+    /// 32-bit float WAV.
     Wav32,
-    /// 16-bit FLAC。
+    /// 16-bit FLAC.
     Flac,
-    /// 24-bit FLAC。
+    /// 24-bit FLAC.
     Flac24,
-    /// MP3 320kbps。
+    /// MP3 320kbps.
     Mp3,
-    /// M4A（仅 MVSEP 后端支持）。
+    /// M4A (MVSEP backend only).
     M4a,
 }
 
@@ -243,7 +243,7 @@ async fn main() {
         Command::Serve(_) => not_implemented("serve", "M4"),
     };
     if let Err(e) = result {
-        eprintln!("错误: {e}");
+        eprintln!("error: {e}");
         std::process::exit(1);
     }
 }
@@ -310,7 +310,7 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
             Box::new(
                 tokio::task::spawn_blocking(move || LocalSeparator::new(&cfg))
                     .await
-                    .map_err(|e| Error::Other(format!("本地后端初始化异常: {e}")))??,
+                    .map_err(|e| Error::Other(format!("local backend init failed: {e}")))??,
             )
         }
         BackendArg::Mvsep => {
@@ -320,7 +320,7 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
                 ModelManager::load(&cfg_clone.models, cfg_clone.network.proxy.as_deref())
             })
             .await
-            .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
+            .map_err(|e| Error::Other(format!("model list load failed: {e}")))??;
             let mut add_opts = BTreeMap::new();
             if let Some(v) = &args.add_opt1 {
                 add_opts.insert("add_opt1".to_string(), v.clone());
@@ -345,7 +345,7 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
 
     println!();
     println!(
-        "分离完成（{:.1}s，后端 {}）：",
+        "Separation done ({:.1}s, backend {}):",
         result.elapsed.as_secs_f64(),
         match result.backend {
             audio_separator_core::config::BackendKind::Local => "local",
@@ -363,7 +363,7 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
 fn parse_model_ref(s: &Option<String>, arch: Option<String>) -> Result<ModelRef> {
     let s = s.as_ref().ok_or_else(|| {
         Error::Config(
-            "请用 --model 指定模型：manifest 中的名字 / 模型下载 URL / 本地模型路径"
+            "Please specify a model with --model: a manifest name / model download URL / local model path"
                 .to_string(),
         )
     })?;
@@ -387,7 +387,7 @@ fn print_progress(ev: &ProgressEvent) {
     match ev {
         ProgressEvent::Stage(s) => {
             eprintln!();
-            eprintln!("[阶段] {s}");
+            eprintln!("[stage] {s}");
         }
         ProgressEvent::Download { downloaded, total } => {
             let pct = total
@@ -398,22 +398,22 @@ fn print_progress(ev: &ProgressEvent) {
                 .unwrap_or_else(|| "?".to_string());
             if let Some(t) = total {
                 if downloaded >= t {
-                    eprintln!("\r下载完成（{t} 字节）");
+                    eprintln!("\rdownload complete ({t} bytes)");
                     return;
                 }
             }
-            eprint!("\r下载模型… {pct}%（{downloaded} / {total_str} 字节）");
+            eprint!("\rdownloading model… {pct}% ({downloaded} / {total_str} bytes)");
         }
         ProgressEvent::Process { percent, message } => {
             let pct = (percent * 100.0) as u32;
             match message {
-                Some(m) => eprint!("\r推理… {m} ({pct}%)"),
-                None => eprint!("\r推理… {pct}%"),
+                Some(m) => eprint!("\rinferring… {m} ({pct}%)"),
+                None => eprint!("\rinferring… {pct}%"),
             }
         }
         ProgressEvent::Writing { stem, percent } => {
             let pct = (percent * 100.0) as u32;
-            eprint!("\r写入分轨 {stem}… {pct}%");
+            eprint!("\rwriting stem {stem}… {pct}%");
         }
         ProgressEvent::Finished => {}
     }
@@ -422,7 +422,7 @@ fn print_progress(ev: &ProgressEvent) {
 /// 尚未实现的子命令提示。
 fn not_implemented(what: &str, milestone: &str) -> Result<()> {
     Err(Error::Backend(format!(
-        "`{what}` 尚未实现（计划于 {milestone} 交付），参见 PLAN.md §9 里程碑"
+        "`{what}` is not implemented yet (planned for {milestone}); see PLAN.md §9 milestones"
     )))
 }
 
@@ -434,9 +434,9 @@ async fn run_job_status(id: &str, api_key: Option<String>) -> Result<()> {
     }
     let client = MvsepClient::new(&cfg.mvsep, cfg.network.proxy.as_deref())?;
     let st = client.get(id).await?;
-    println!("任务 {id}");
+    println!("Task {id}");
     println!(
-        "状态: {}",
+        "status: {}",
         match st.status {
             audio_separator_core::backend::mvsep::MvsepStatus::Done => "done",
             audio_separator_core::backend::mvsep::MvsepStatus::Waiting => "waiting",
@@ -448,13 +448,13 @@ async fn run_job_status(id: &str, api_key: Option<String>) -> Result<()> {
         }
     );
     if let Some(a) = &st.algorithm {
-        println!("算法: {a}");
+        println!("algorithm: {a}");
     }
     if let Some(m) = &st.message {
-        println!("说明: {m}");
+        println!("description: {m}");
     }
     match (st.queue_count, st.current_order) {
-        (Some(q), Some(o)) => println!("排队: {o} 号 / 共 {q} 个待处理"),
+        (Some(q), Some(o)) => println!("queue position: {o} / {q} pending"),
         _ => {}
     }
     for f in &st.files {
@@ -466,7 +466,7 @@ async fn run_job_status(id: &str, api_key: Option<String>) -> Result<()> {
         );
     }
     if st.files.is_empty() && matches!(st.status, audio_separator_core::backend::mvsep::MvsepStatus::Done) {
-        println!("（无输出文件）");
+        println!("(no output files)");
     }
     Ok(())
 }
@@ -497,15 +497,15 @@ async fn run_models(
         ModelManager::load(&cfg.models, cfg.network.proxy.as_deref())
     })
     .await
-    .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
+    .map_err(|e| Error::Other(format!("model list load failed: {e}")))??;
     let list = manager.list();
     if list.models.is_empty() {
-        println!("清单为空（未配置 models.list 或清单无模型）");
+        println!("model list is empty (models.list not configured or list has no models)");
         return Ok(());
     }
-    println!("模型清单 v{}（{} 个模型）", list.version, list.models.len());
+    println!("model list v{} ({} models)", list.version, list.models.len());
     for m in &list.models {
-        let stems = m.stems.join("、");
+        let stems = m.stems.join(", ");
         let mvsep = m
             .mvsep
             .as_ref()
@@ -514,15 +514,15 @@ async fn run_models(
         let src = m
             .local_path
             .as_ref()
-            .map(|p| format!("本地:{}", p.display()))
+            .map(|p| format!("local:{}", p.display()))
             .or_else(|| {
                 m.source_url
                     .as_ref()
-                    .map(|u| format!("下载:{}", u))
+                    .map(|u| format!("download:{}", u))
             })
-            .unwrap_or_else(|| "无来源".to_string());
+            .unwrap_or_else(|| "no source".to_string());
         println!(
-            "- {} [{} / {}] 分轨: {} | {}{}",
+            "- {} [{} / {}] stems: {} | {}{}",
             m.name, m.architecture, m.engine, stems, src, mvsep
         );
     }
@@ -534,14 +534,14 @@ async fn run_models_mvsep() -> Result<()> {
     let cfg = Config::default();
     let client = MvsepClient::new(&cfg.mvsep, cfg.network.proxy.as_deref())?;
     let algos = client.algorithms().await?;
-    println!("MVSEP 算法目录（{} 项，single_upload）：", algos.len());
+    println!("MVSEP algorithms ({} entries, single_upload):", algos.len());
     let mut grouped: BTreeMap<String, Vec<(u64, String)>> = BTreeMap::new();
     for a in &algos {
         let group = a
             .group
             .as_ref()
             .and_then(|g| g.name.clone())
-            .unwrap_or_else(|| "其他".to_string());
+            .unwrap_or_else(|| "other".to_string());
         grouped
             .entry(group)
             .or_default()
@@ -567,11 +567,11 @@ async fn run_model_info(
         ModelManager::load(&cfg.models, cfg.network.proxy.as_deref())
     })
     .await
-    .map_err(|e| Error::Other(format!("模型清单加载异常: {e}")))??;
+    .map_err(|e| Error::Other(format!("model list load failed: {e}")))??;
     let entry = manager
         .list()
         .get(model)
-        .ok_or_else(|| Error::Model(format!("模型「{model}」不在清单中")))?;
+        .ok_or_else(|| Error::Model(format!("model \"{model}\" not found in the manifest")))?;
     println!(
         "{}",
         serde_json::to_string_pretty(entry).map_err(Error::Json)?
