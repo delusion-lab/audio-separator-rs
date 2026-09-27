@@ -6,5 +6,7 @@
 pub mod mdx;
 pub mod roformer_stft;
 pub mod bs_roformer;
+pub mod mel;
+pub mod mel_band_roformer;
 
 pub use mdx::{separate_mdx, MdxParams};

@@ -100,18 +100,18 @@ impl Safetensors {
         Ok(Self { values })
     }
 
-    fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.values.len()
     }
 
-    fn tensor(&self, name: &str) -> Result<&Tensor> {
+    pub(crate) fn tensor(&self, name: &str) -> Result<&Tensor> {
         self.values
             .get(name)
             .ok_or_else(|| Error::Model(format!("缺少权重: {name}")))
     }
 
     /// 读取并校验形状，转为 f32 向量（用于 norm/rope 等标量参数）。
-    fn vec1(&self, name: &str, expected: usize) -> Result<Vec<f32>> {
+    pub(crate) fn vec1(&self, name: &str, expected: usize) -> Result<Vec<f32>> {
         let t = self.tensor(name)?;
         if t.dims() != [expected] {
             return Err(Error::Model(format!("{name}: 形状不符 {:?}", t.dims())));
@@ -123,7 +123,7 @@ impl Safetensors {
         Ok(v)
     }
 
-    fn linear(&self, prefix: &str, input: usize, output: usize, bias: bool) -> Result<Linear> {
+    pub(crate) fn linear(&self, prefix: &str, input: usize, output: usize, bias: bool) -> Result<Linear> {
         let weight = self.tensor(&format!("{prefix}.weight"))?;
         if weight.dims() != [output, input] {
             return Err(Error::Model(format!(
@@ -206,7 +206,7 @@ pub fn rms_norm(x: &Tensor, gamma: &[f32], dim: usize) -> Result<Tensor> {
 }
 
 /// 相邻对 RoPE：x 布局 [b, heads, seq, dim]，dim 偶数；cos/sin 表 [seq, dim/2]。
-fn rotate(x: &Tensor, cos: &[f32], sin: &[f32], seq: usize) -> Result<Tensor> {
+pub(crate) fn rotate(x: &Tensor, cos: &[f32], sin: &[f32], seq: usize) -> Result<Tensor> {
     let shape = x.shape().clone();
     let dim = shape.dims()[3];
     let data = x
