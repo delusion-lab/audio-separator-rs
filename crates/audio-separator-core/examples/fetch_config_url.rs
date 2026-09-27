@@ -18,7 +18,7 @@ fn main() {
         "model_bs_polarformer_float16",
     ];
     for name in names {
-        let resolved = mgr.resolve(&ModelRef::Name(name.to_string()), None, None).unwrap();
+        let resolved = mgr.resolve(&ModelRef::Name(name.to_string()), None, None, None).unwrap();
         let entry = resolved.entry.as_ref().unwrap();
         let p = &entry.params;
         let pick = |k: &str| {

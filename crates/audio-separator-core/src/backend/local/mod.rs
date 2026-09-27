@@ -63,6 +63,7 @@ impl Separator for LocalSeparator {
         // 本地执行（解析模型、解码、推理、写盘）为阻塞密集操作，包进 spawn_blocking。
         let manager = Arc::clone(&self.manager);
         let model = req.model.clone();
+        let config_url = req.config_url.clone();
         let input = req.input.clone();
         let output_format = req.output_format;
         let output_dir = req.output_dir.clone();
@@ -73,7 +74,8 @@ impl Separator for LocalSeparator {
                 progress.as_ref(),
                 ProgressEvent::Stage("resolve_model".to_string()),
             );
-            let resolved = manager.resolve(&model, progress.as_ref(), cancel.as_ref())?;
+            let resolved =
+                manager.resolve(&model, config_url.as_deref(), progress.as_ref(), cancel.as_ref())?;
             run_local(
                 resolved,
                 &input,

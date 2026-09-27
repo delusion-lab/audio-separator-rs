@@ -138,6 +138,7 @@ impl WorkerPool {
             } else {
                 Some(task.select_stems.clone())
             },
+            config_url: task.config_url.clone(),
         };
 
         let result = match sep.separate(req, Some(tx), Some(cancel)).await {

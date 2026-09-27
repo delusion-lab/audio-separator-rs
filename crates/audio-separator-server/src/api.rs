@@ -91,6 +91,7 @@ pub async fn separate(
     let mut backend = st.cfg.backend;
     let mut format = st.cfg.output.format;
     let mut stems: Vec<String> = Vec::new();
+    let mut config_url: Option<String> = None;
 
     let max_bytes = st.cfg.server.max_upload_bytes;
     while let Some(mut field) = mp.next_field().await.map_err(|e| ApiError::bad_request(e.to_string()))? {
@@ -142,6 +143,10 @@ pub async fn separate(
                     .filter(|s| !s.is_empty())
                     .collect();
             }
+            "config_url" => {
+                let v = field.text().await.map_err(|e| ApiError::bad_request(e.to_string()))?;
+                config_url = if v.trim().is_empty() { None } else { Some(v.trim().to_string()) };
+            }
             _ => {
                 // 忽略未知字段
             }
@@ -192,6 +197,7 @@ pub async fn separate(
         out_dir: task_dir.join("out"),
         format,
         select_stems: stems,
+        config_url: config_url.clone(),
         files: Vec::new(),
         error: None,
         cancel: Some(tokio_util::sync::CancellationToken::new()),
@@ -206,6 +212,7 @@ pub async fn separate(
             "backend": backend_str(backend),
             "model": model,
             "input": input_display,
+            "config_url": config_url,
         })),
     )
         .into_response())
@@ -530,6 +537,38 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn separate_accepts_config_url_field() {
+        let state = test_state(None);
+        let app = build_router(state.clone());
+        let cfg_val = "C:/tmp/model.yaml";
+        let boundary = "----aseptest";
+        let body = format!(
+            "--{b}\r\nContent-Disposition: form-data; name=\"audio\"; filename=\"a.wav\"\r\nContent-Type: application/octet-stream\r\n\r\nRIFF-test\r\n--{b}\r\nContent-Disposition: form-data; name=\"model\"\r\n\r\nm1\r\n--{b}\r\nContent-Disposition: form-data; name=\"config_url\"\r\n\r\n{cfg}\r\n--{b}--\r\n",
+            b = boundary,
+            cfg = cfg_val
+        );
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/api/v1/separate")
+                    .header("content-type", format!("multipart/form-data; boundary={boundary}"))
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::ACCEPTED);
+        let body = axum::body::to_bytes(res.into_body(), 1024 * 1024).await.unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["config_url"], cfg_val);
+        let id = json["task_id"].as_str().unwrap();
+        let rec = state.store.get(id).unwrap();
+        assert_eq!(rec.config_url.as_deref(), Some(cfg_val));
+        assert_eq!(rec.model, "m1");
     }
 
     #[tokio::test]

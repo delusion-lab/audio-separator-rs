@@ -69,6 +69,8 @@ pub struct TaskRecord {
     pub format: OutputFormat,
     /// 只输出这些分轨；空 = 模型全部分轨。
     pub select_stems: Vec<String>,
+    /// 模型参数配置（yaml/json）URL 或本地路径（可选，透传分离请求）。
+    pub config_url: Option<String>,
     /// 输出文件（done 后填充）。
     pub files: Vec<TaskFile>,
     /// 失败原因。

@@ -50,6 +50,12 @@ asep separate input.wav -o out/ --model model_bs_polarformer_float16
 
 # 指定输出格式（wav/wav32/flac/flac24/mp3/m4a）
 asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
+
+# 直传模型权重 + 参数配置（yaml/json），完全绕过 models.json：
+#   --model 支持 下载 URL / 本地模型路径（+ --arch 指定架构）
+#   --config-url 支持 参数文件 URL / 本地路径，作为架构参数的权威来源
+asep separate input.wav -o out/ --model ./model.ckpt --arch bs_polarformer --config-url ./config.yaml
+asep separate input.wav -o out/ --model https://.../model.ckpt --arch mel_band_roformer --config-url https://.../config.yaml
 ```
 
 ### CLI 分离（MVSEP 云）
@@ -76,7 +82,7 @@ REST 接口：
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| POST | `/api/v1/separate` | multipart 提交任务（`audio` 文件或 `audio_url` + `model` + `backend` + `format`） |
+| POST | `/api/v1/separate` | multipart 提交任务（`audio` 文件或 `audio_url` + `model` + `backend` + `format` + 可选 `config_url`） |
 | GET | `/api/v1/tasks/{id}` | 查询任务状态（queued/running/done/failed/cancelled + 进度） |
 | GET | `/api/v1/tasks/{id}/download?stem=` | 下载分轨结果 |
 | DELETE | `/api/v1/tasks/{id}` | 取消运行中任务或清理终态任务 |
@@ -112,6 +118,10 @@ curl -F "audio=@input.wav" -F "model=model_bs_polarformer_float16" \
 ```
 
 `config_url` 允许把开源模型作者随权重发布的参数文件（yaml/json）直接以 URL 引入，作为架构参数的权威来源。
+
+**不经过 models.json 直传**：`--model <URL|本地路径> --config-url <URL|本地路径>`（CLI）或 multipart `config_url` 字段（服务端）
+可完全绕过清单——权重与参数文件均可直接指定，无需在清单中登记条目；按名引用时 `config_url` 覆盖清单条目的同名配置。
+服务端 `POST /api/v1/separate` 的 `config_url` 字段同样生效。
 
 ## 网络与代理
 

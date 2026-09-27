@@ -95,6 +95,12 @@ struct SeparateArgs {
     #[arg(long)]
     arch: Option<String>,
 
+    /// 模型参数配置（yaml/json）的 URL 或本地路径。传了则作为架构参数的权威来源，
+    /// 与 --model 的 URL / 本地路径形态搭配可直接使用，无需 models.json 条目；
+    /// 按名引用时覆盖清单条目的 config_url。
+    #[arg(long)]
+    config_url: Option<String>,
+
     /// 只输出指定分轨（逗号分隔）；分轨全集由所选模型定义。
     #[arg(long, value_delimiter = ',')]
     stems: Option<Vec<String>>,
@@ -285,6 +291,7 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
         output_format: args.format.into(),
         output_dir: args.output.clone(),
         select_stems: args.stems.clone(),
+        config_url: args.config_url.clone(),
     };
 
     // 进度订阅（进度/下载/推理输出到 stderr，结果到 stdout）

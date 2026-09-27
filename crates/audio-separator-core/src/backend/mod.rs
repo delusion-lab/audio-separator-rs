@@ -43,6 +43,10 @@ pub struct SeparationRequest {
     pub output_dir: PathBuf,
     /// 可选：只输出部分分轨；为空输出模型定义的全部分轨。
     pub select_stems: Option<Vec<String>>,
+    /// 可选：模型参数配置（yaml/json）的 URL 或本地路径。传了则作为架构参数的
+    /// 权威来源（覆盖 models.json 条目 params）；URL/本地路径形态模型也可直接使用，
+    /// 无需在 models.json 中登记条目。MVSEP 后端忽略此字段。
+    pub config_url: Option<String>,
 }
 
 /// 分离结果。

@@ -40,6 +40,36 @@ pub struct ModelManager {
 }
 
 impl ModelManager {
+    /// URL / 本地路径形态 + 显式模型配置（yaml/json URL 或本地路径）时，
+    /// 构造临时清单条目（params 来自配置文件解析结果），使架构参数直接可用；
+    /// 未提供 config 时返回 `None`（架构参数走默认值，与原先行为一致）。
+    fn config_entry(
+        &self,
+        name: &str,
+        architecture: &str,
+        config: Option<&str>,
+        progress: Option<&mpsc::Sender<ProgressEvent>>,
+        cancel: Option<&CancellationToken>,
+    ) -> Result<Option<ModelEntry>> {
+        let Some(cfg) = config else {
+            return Ok(None);
+        };
+        let params = self.load_config(cfg, name, progress, cancel)?;
+        Ok(Some(ModelEntry {
+            name: name.to_string(),
+            architecture: architecture.to_string(),
+            engine: String::new(),
+            source_url: None,
+            sha256: None,
+            config_url: Some(cfg.to_string()),
+            local_path: None,
+            stems: Vec::new(),
+            license: None,
+            params,
+            mvsep: None,
+        }))
+    }
+
     /// 按配置加载模型清单并确定缓存目录。
     pub fn load(models: &ModelsConfig, proxy: Option<&str>) -> Result<Self> {
         let cache_dir = match &models.cache_dir {
@@ -77,6 +107,7 @@ impl ModelManager {
     pub fn resolve(
         &self,
         model: &ModelRef,
+        config: Option<&str>,
         progress: Option<&mpsc::Sender<ProgressEvent>>,
         cancel: Option<&CancellationToken>,
     ) -> Result<ResolvedModel> {
@@ -88,6 +119,10 @@ impl ModelManager {
                     ))
                 })?
                 .clone();
+                // 显式传入的配置（CLI --config-url / server config_url 字段）优先于条目声明。
+                if let Some(cfg) = config {
+                    entry.config_url = Some(cfg.to_string());
+                }
                 // 模型参数配置（yaml/json，与权重同仓库发布）：config_url 存在时
                 // 懒下载/读取并解析，解析结果作为架构参数的权威来源（替换内嵌 params）。
                 if let Some(cfg) = entry.config_url.clone() {
@@ -128,8 +163,9 @@ impl ModelManager {
                 let architecture = arch.clone().unwrap_or_else(|| "mdx".to_string());
                 let dest = self.cache_dir.join(url_file_name(url));
                 self.download_if_missing(url, &dest, None, progress, cancel)?;
+                let entry = self.config_entry(&url_file_name(url), &architecture, config, progress, cancel)?;
                 Ok(ResolvedModel {
-                    entry: None,
+                    entry,
                     local_path: dest,
                     architecture,
                     cache_dir: self.cache_dir.clone(),
@@ -140,8 +176,13 @@ impl ModelManager {
                     return Err(Error::Model(format!("模型文件不存在: {}", path.display())));
                 }
                 let architecture = arch.clone().unwrap_or_else(|| "mdx".to_string());
+                let name = path
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| "model".to_string());
+                let entry = self.config_entry(&name, &architecture, config, progress, cancel)?;
                 Ok(ResolvedModel {
-                    entry: None,
+                    entry,
                     local_path: path.clone(),
                     architecture,
                     cache_dir: self.cache_dir.clone(),
@@ -366,4 +407,120 @@ pub(crate) fn url_file_name(url: &str) -> String {
         .filter(|s| !s.is_empty())
         .map(sanitize_name)
         .unwrap_or_else(|| "model.bin".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::ModelsConfig;
+
+    fn temp_dir(tag: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("asep-mgr-{tag}-{}", std::process::id()))
+    }
+
+    fn write_temp(path: &Path, content: &str) {
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, content).unwrap();
+    }
+
+    fn manager(cache: &Path) -> ModelManager {
+        ModelManager::load(
+            &ModelsConfig {
+                list: None,
+                cache_dir: Some(cache.to_path_buf()),
+            },
+            None,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn resolve_local_path_with_config_parses_params() {
+        let d = temp_dir("withcfg");
+        let ckpt = d.join("m.ckpt");
+        write_temp(&ckpt, "fake-weights");
+        let cfg = d.join("m.yaml");
+        write_temp(&cfg, "audio:
+  sample_rate: 44100
+model:
+  dim: 384
+  depth: 12
+  heads: 8
+");
+        let mgr = manager(&d.join("cache"));
+        let resolved = mgr
+            .resolve(
+                &ModelRef::LocalPath {
+                    path: ckpt,
+                    arch: Some("bs_roformer".to_string()),
+                },
+                Some(cfg.to_str().unwrap()),
+                None,
+                None,
+            )
+            .unwrap();
+        let entry = resolved.entry.as_ref().expect("应构造临时条目");
+        assert_eq!(entry.architecture, "bs_roformer");
+        assert_eq!(entry.config_url.as_deref(), Some(cfg.to_str().unwrap()));
+        assert_eq!(entry.params["dim"], 384);
+        assert_eq!(entry.params["depth"], 12);
+        assert_eq!(entry.params["heads"], 8);
+        assert_eq!(entry.params["sample_rate"], 44100);
+        assert_eq!(resolved.architecture, "bs_roformer");
+    }
+
+    #[test]
+    fn resolve_local_path_without_config_keeps_none() {
+        let d = temp_dir("nocfg");
+        let ckpt = d.join("m.ckpt");
+        write_temp(&ckpt, "fake");
+        let mgr = manager(&d.join("cache"));
+        let resolved = mgr
+            .resolve(
+                &ModelRef::LocalPath {
+                    path: ckpt,
+                    arch: Some("mdx".to_string()),
+                },
+                None,
+                None,
+                None,
+            )
+            .unwrap();
+        assert!(resolved.entry.is_none());
+        assert_eq!(resolved.architecture, "mdx");
+    }
+
+    #[test]
+    fn resolve_name_explicit_config_overrides_entry() {
+        let d = temp_dir("namecfg");
+        let manifest = d.join("models.json");
+        let lp = d.join("m1.onnx");
+        write_temp(&lp, "fake-onnx");
+        let lp_json = lp.to_str().unwrap().replace("\\", "\\\\");
+        let manifest_json = format!(
+            r#"{{"version":1,"models":[{{"name":"m1","architecture":"mdx","local_path":"{lp_json}","params":{{"default_k":1}}}}]}}"#
+        );
+        write_temp(&manifest, &manifest_json);
+        let cfg = d.join("override.yaml");
+        write_temp(&cfg, "overlap: 0.5
+batch_size: 1
+");
+        let mgr = ModelManager::load(
+            &ModelsConfig {
+                list: Some(ModelListSource::Path(manifest)),
+                cache_dir: Some(d.join("cache")),
+            },
+            None,
+        )
+        .unwrap();
+        let resolved = mgr
+            .resolve(&ModelRef::Name("m1".to_string()), Some(cfg.to_str().unwrap()), None, None)
+            .unwrap();
+        let entry = resolved.entry.as_ref().expect("应命中条目");
+        // 显式 config 替换条目 config_url 并解析（拍平后 overlap/batch_size 可见，
+        // 且条目内嵌 default_k 保留）
+        assert_eq!(entry.config_url.as_deref(), Some(cfg.to_str().unwrap()));
+        assert_eq!(entry.params["overlap"], 0.5);
+        assert_eq!(entry.params["batch_size"], 1);
+    }
 }
