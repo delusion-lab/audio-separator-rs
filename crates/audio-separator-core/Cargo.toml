@@ -37,3 +37,5 @@ serde_yaml = "0.9"
 
 # 权重转换（torch 存档解析 → safetensors）
 zip = { version = "2", default-features = false, features = ["deflate"] }
+flacenc = "0.5.1"
+rusty_mp3 = "0.8.0"

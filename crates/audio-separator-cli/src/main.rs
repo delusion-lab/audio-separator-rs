@@ -172,9 +172,17 @@ enum BackendArg {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 enum FormatArg {
+    /// 16-bit PCM WAV（默认）。
     Wav,
+    /// 32-bit float WAV。
+    Wav32,
+    /// 16-bit FLAC。
     Flac,
+    /// 24-bit FLAC。
+    Flac24,
+    /// MP3 320kbps。
     Mp3,
+    /// M4A（仅 MVSEP 后端支持）。
     M4a,
 }
 
@@ -182,7 +190,9 @@ impl From<FormatArg> for OutputFormat {
     fn from(f: FormatArg) -> Self {
         match f {
             FormatArg::Wav => OutputFormat::Wav16,
+            FormatArg::Wav32 => OutputFormat::Wav32,
             FormatArg::Flac => OutputFormat::Flac16,
+            FormatArg::Flac24 => OutputFormat::Flac24,
             FormatArg::Mp3 => OutputFormat::Mp3,
             FormatArg::M4a => OutputFormat::M4a,
         }

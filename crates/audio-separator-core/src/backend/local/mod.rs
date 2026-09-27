@@ -213,7 +213,7 @@ fn run_local(
         }
         io::normalize(&mut samples);
         let path = output_dir.join(format!("{name}.{ext}"));
-        io::write_wav(&path, &samples, model_sample_rate, 2)?;
+        io::write_audio(&path, &samples, model_sample_rate, 2, output_format)?;
         result_stems.insert(name.clone(), path);
         written += 1;
         if let Some(pr) = progress {

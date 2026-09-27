@@ -203,3 +203,119 @@ pub fn write_wav(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) 
         .map_err(|e| Error::Format(format!("完成 {} 失败: {e}", path.display())))?;
     Ok(())
 }
+
+/// 按输出格式写音频文件（M5：WAV16/32、FLAC16/24、MP3；M4A 本地暂不支持）。
+pub fn write_audio(
+    path: &Path,
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u16,
+    format: crate::model::OutputFormat,
+) -> Result<()> {
+    match format {
+        crate::model::OutputFormat::Wav16 => write_wav(path, samples, sample_rate, channels),
+        crate::model::OutputFormat::Wav32 => write_wav_f32(path, samples, sample_rate, channels),
+        crate::model::OutputFormat::Flac16 => write_flac(path, samples, sample_rate, channels, 16),
+        crate::model::OutputFormat::Flac24 => write_flac(path, samples, sample_rate, channels, 24),
+        crate::model::OutputFormat::Mp3 => write_mp3(path, samples, sample_rate, channels),
+        crate::model::OutputFormat::M4a => Err(Error::Backend(
+            "本地后端暂不支持 M4A 输出（请使用 MVSEP 后端，或改选 wav/flac/mp3）".to_string(),
+        )),
+    }
+}
+
+/// 交织 f32 采样写为 32-bit float WAV。
+fn write_wav_f32(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) -> Result<()> {
+    use hound::{SampleFormat, WavSpec, WavWriter};
+    let spec = WavSpec {
+        channels,
+        sample_rate,
+        bits_per_sample: 32,
+        sample_format: SampleFormat::Float,
+    };
+    let mut writer = WavWriter::create(path, spec)
+        .map_err(|e| Error::Format(format!("创建 {} 失败: {e}", path.display())))?;
+    for &s in samples {
+        writer
+            .write_sample(s.clamp(-1.0, 1.0))
+            .map_err(|e| Error::Format(format!("写入 {} 失败: {e}", path.display())))?;
+    }
+    writer
+        .finalize()
+        .map_err(|e| Error::Format(format!("完成 {} 失败: {e}", path.display())))?;
+    Ok(())
+}
+
+/// 交织 f32 采样写为 FLAC（16/24-bit，纯 Rust flacenc 编码器）。
+fn write_flac(
+    path: &Path,
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u16,
+    bits: usize,
+) -> Result<()> {
+    use flacenc::bitsink::ByteSink;
+    use flacenc::component::BitRepr;
+    use flacenc::config::Encoder as FlacConfig;
+    use flacenc::error::Verify;
+    use flacenc::source::MemSource;
+
+    // f32 → 目标位深整数（24-bit 时映射到 24 位有效范围）
+    let scale: f32 = if bits == 24 {
+        (1i64 << 23) as f32
+    } else {
+        i16::MAX as f32
+    };
+    let i32_samples: Vec<i32> = samples
+        .iter()
+        .map(|&s| (s.clamp(-1.0, 1.0) * scale) as i32)
+        .collect();
+
+    let config = FlacConfig::default()
+        .into_verified()
+        .map_err(|e| Error::Format(format!("FLAC 配置无效: {e:?}")))?;
+    let source = MemSource::from_samples(
+        &i32_samples,
+        channels as usize,
+        bits,
+        sample_rate as usize,
+    );
+    let stream = flacenc::encode_with_fixed_block_size(&config, source, config.block_size)
+        .map_err(|e| Error::Format(format!("FLAC 编码失败: {e:?}")))?;
+    let mut sink = ByteSink::with_capacity(stream.count_bits());
+    stream
+        .write(&mut sink)
+        .map_err(|e| Error::Format(format!("FLAC 位流写入失败: {e:?}")))?;
+    std::fs::write(path, sink.into_inner())
+        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("写入 {} 失败: {e}", path.display()))))?;
+    Ok(())
+}
+
+/// 交织 f32 采样写为 MP3（320kbps CBR，纯 Rust rusty_mp3 编码器）。
+fn write_mp3(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) -> Result<()> {
+    use rusty_mp3::error::Error as Mp3Error;
+    use rusty_mp3::{Mp3Encoder, Mp3EncoderConfig};
+
+    let config = Mp3EncoderConfig {
+        bitrate_kbps: 320,
+        vbr_quality: None,
+    };
+    let mut encoder = Mp3Encoder::new(config);
+    encoder
+        .push_pcm_f32(samples, channels, sample_rate)
+        .map_err(|e| Error::Format(format!("MP3 编码输入失败: {e:?}")))?;
+    encoder.finish();
+
+    let mut bytes: Vec<u8> = Vec::new();
+    loop {
+        match encoder.next_packet() {
+            Ok(p) => bytes.extend_from_slice(&p),
+            Err(Mp3Error::Eof) => break,
+            Err(Mp3Error::Again) => continue,
+            Err(e) => return Err(Error::Format(format!("MP3 编码失败: {e:?}"))),
+        }
+    }
+    std::fs::write(path, bytes)
+        .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("写入 {} 失败: {e}", path.display()))))?;
+    Ok(())
+}
