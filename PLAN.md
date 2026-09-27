@@ -239,7 +239,7 @@ pub trait Separator: Send + Sync {
 | model_mel_band_roformer_ep_3005_sdr_11.4360 | mel_band_roformer / candle | TRvlvr/model_repo all_public_uvr_models | `21b9d0958e35b8eb` | **权重锁定（2026-09-26）**：官方名为 `…_11.4360.ckpt`（非 11.2360）；yaml 同源 `TRvlvr/application_data` mdx_c_configs；dim=384、num_bands=60、dim_freqs_in=1025、stereo、mask_estimator_depth=2 |
 | model_bs_polarformer_float16 | bs_polarformer / candle | MSST releases v1.0.20 | `fc8b72c3beb92caa` | **M2-D 已移植（2026-09-27）**：float16 ckpt（97.7MB）→ f32 safetensors（723 tensors，转换器 fp16 支持）；yaml 同 release；dim=256/depth=12/heads=8/use_pope=true/mask_estimator_depth 按 1 处理/stft_n_fft=2048/stft_hop_length=512 |
 
-> 清单维护：本地文件 + 后续远程 URL（M3 初始化独立 GitHub 仓库统一维护）；`scripts/download-shards.ps1` 为代理分片下载工具。
+> 清单维护：`models.json` 可放本地或任意 URL（如 GitHub raw）；**独立模型仓库仅托管清单 JSON，不放模型文件**（GitHub 不建议承载大模型文件，模型权重继续放在官方 release / HF），M3 时将 `models.json` 发布到 GitHub 仓库即可，CLI/服务端通过 `--models-url` 或 `config.models.list` 指向该 URL。`scripts/download-shards.ps1` 为代理分片下载工具。
 >
 > **参数权威来源（config_url）**：模型条目可挂 `config_url`（与权重同仓库发布的 yaml/json，如 `https://huggingface.co/anvuew/BS-RoFormer/raw/main/config.yaml` 或官方 mdx_c_configs），resolve 时懒下载到 `cache_dir/configs/` 并解析，覆盖内嵌 params 作为架构参数权威来源；仅当条目无 config_url 时才回退内嵌 params。
 
@@ -287,7 +287,7 @@ ModelRef 解析优先级：
 
 * 清单源：`config.models.list = "path/to/models.json" | "https://…/models.json"`，默认指向独立 GitHub 模型仓库（M3 初始化该仓库，集中维护各架构模型条目与下载链接）。
 
-* 安全：远程清单条目必须携带 `sha256`，下载后校验，防供应链篡改；`license` 字段随条目展示。
+* 安全：`sha256` 为**可选字段**——清单条目携带时下载后强校验（防供应链篡改）；未携带时跳过校验、缓存命中直接复用（适配无官方哈希的社区模型）。`license` 字段随条目展示。
 
 ## 6. CLI 设计（audio-separator-cli）
 
@@ -362,7 +362,7 @@ MVSEP 路径: create(hash) → poll get(waiting→processing→done) → 下载 
 | M0 | workspace 骨架、core 类型（config/error/job/model）、CLI 骨架                                                                                                            | ✅ 已完成：`cargo build` 通过，`asep --help` 正常 |
 | M1 | **本地内核 + 模型管理**：onnx 引擎、manifest JSON（本地 + URL）、懒下载与 sha256 校验、URL / 本地路径模型、架构注册表骨架；**mdx 架构端到端**；spike：Roformer 家族 ONNX 导出可行性结论                               | ✅ 已完成（2026-09-26）：`UVR_MDXNET_9482` 端到端分出人声 / 伴奏（合成与真实歌曲均验证，两轨相关系数 0.044）；`asep separate / models / model-info` 可用；Roformer spike 结论已出（docs/spike-roformer.md） |
 | M2 | **权重转换与 Roformer 移植**：M2-A✅（2026-09-26）ckpt→safetensors 转换器（受限 pickle 解析 + 懒转换缓存；写入器修复 8 字节 header 对齐 + 空格 padding，全量 699 tensor 无 NaN；后续补 fp16→f32 支持）；M2-B bs\_roformer ✅（2026-09-26）：candle 0.9 CPU 前向（f64 STFT + 能量归一化 iSTFT + band-split + 双轴向注意力 + mask 估计），冒烟 / 真实歌曲（26.1s）全通过，能量守恒且两轨相关性 0.029；性能=参考实现同量级（见 §10）；**M2-C mel\_band\_roformer ✅（2026-09-27）**：mel 60 频带 Slaney 滤波器组 + MSST 结构移植，torch 对照相关性 0.96、真实歌曲 RTF 8.4、能量守恒 94.3%；**config_url ✅（2026-09-27，1277d4e）**：模型条目 yaml/json 参数 URL 导入（剥 !!python/tuple、audio/model 段拍平），解析结果作为架构参数权威来源；**M2-D bs\_polarformer ✅（2026-09-27，8258049）**：PoPE 极坐标嵌入 + 62 频带 + 8s 窗调度，torch 对照 time/freq 12 层 + vocals 双声道 corr=1.0，2s release 12.0s（两处根因：features 布局 time 应在 frame 轴、PoPE 输出 dim 翻倍截断）→ **onnx 家族扩展**：demucs/mdxc（复用 mdx 管线）；vr 架构原始权重为 .pth（UVR 生态），格式与推理管线核实后接入 | 三款 Roformer 模型 CLI 可跑，参数按架构校验     |
-| M3 | MVSEP 后端：客户端（create/poll/cancel/webhook）、模型目录映射、CLI 单次分离；**初始化模型清单 GitHub 仓库**                                                                                 | 真实 API Key 跑通人声 / 伴奏分离            |
+| M3 | MVSEP 后端：客户端（create/poll/cancel/webhook）、模型目录映射、CLI 单次分离；**发布 `models.json` 到 GitHub 仓库**（仅托管清单 JSON，权重留在官方源；支持 URL 拉取清单） | 真实 API Key 跑通人声 / 伴奏分离            |
 | M4 | 服务端：axum 上传 / 任务 / 下载 / 取消、并发控制、Bearer Token                                                                                                                   | curl 全流程：上传→轮询→下载                 |
 | M5 | 完善：FLAC/MP3 输出、webhook、单元 / 集成测试、README、CI、Docker                                                                                                              | 文档与测试齐备                           |
 
@@ -396,6 +396,6 @@ MVSEP 路径: create(hash) → poll get(waiting→processing→done) → 下载 
 
 2. ~~M1 spike 结论前，Roformer 家族引擎路线以 "candle 移植" 为主计划、ONNX 导出为备选 —— 是否认可该主备次序？~~ **已确认**：candle 移植为主、ONNX 导出为备选（2026-09-26）。
 
-3. 模型清单默认仓库（GitHub 组织 / 用户名占位，M3 初始化）。
+3. ~~模型清单默认仓库~~ **已澄清（2026-09-27）**：仓库仅托管 `models.json`（不放模型文件），sha256 为可选字段（缺省跳过校验）；支持本地路径或 URL 两种清单源，发布到 GitHub 后通过 `--models-url` / `config.models.list` 指向即可。
 
 4. 服务端目标场景与预期并发（影响 worker 池与限流设计，M4 前确认即可）。
