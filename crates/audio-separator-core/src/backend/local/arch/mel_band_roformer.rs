@@ -11,7 +11,6 @@
 
 use candle_core::{Device, Tensor};
 use candle_nn::Linear;
-use rayon::prelude::*;
 use rustfft::num_complex::Complex32;
 
 use crate::error::{Error, Result};
@@ -462,12 +461,12 @@ impl MelBandRoformer {
         }
         if std::env::var("ASEP_DEBUG").is_ok() {
             for ch in 0..2 {
-                let e: f64 = out_masked[ch].iter().map(|v| (v.norm_sqr() as f64)).sum();
+                let e: f64 = out_masked[ch].iter().map(|v| v.norm_sqr() as f64).sum();
                 eprintln!("DBG masked spectrum ch{ch} energy={e:.6}");
             }
             // 输入谱能量 + 440Hz(bin20)/880Hz(bin41) 位置的 masked 值
             for ch in 0..2 {
-                let e_in: f64 = spectra[ch].iter().map(|v| (v.norm_sqr() as f64)).sum();
+                let e_in: f64 = spectra[ch].iter().map(|v| v.norm_sqr() as f64).sum();
                 eprintln!(
                     "DBG in spectrum ch{ch} energy={e_in:.3}  masked[bin20]={:?}  masked[bin41]={:?}",
                     out_masked[ch][20 * frames],
@@ -533,7 +532,7 @@ impl MelBandRoformer {
             }
             let predicted = self.predict_window(&input, length)?;
             debug_assert_eq!(predicted.len(), 2 * length);
-            for (channel, source) in audio.iter().enumerate() {
+            for (channel, _source) in audio.iter().enumerate() {
                 for i in 0..keep {
                     vocals[channel * samples_len + offset + i] +=
                         predicted[channel * length + i] * window[i];

@@ -151,6 +151,7 @@ impl<'a> Vm<'a> {
             b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
         ]))
     }
+    #[allow(dead_code)] // M2-D bs_polarformer 权重（含 LONG tensor）转换时使用
     fn i64_le(&mut self) -> Result<i64> {
         Ok(self.u64_le()? as i64)
     }

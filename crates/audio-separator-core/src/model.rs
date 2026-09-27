@@ -115,6 +115,11 @@ pub struct ModelEntry {
     /// 模型文件 SHA-256（远程清单强制要求，下载后校验）。
     #[serde(default)]
     pub sha256: Option<String>,
+    /// 模型参数配置（yaml/json）下载地址：开源模型通常与权重同仓库发布 config
+    /// （如 HuggingFace `config.yaml` / MSST 训练 yaml）。按名懒下载解析，
+    /// 结果合并进 `params`（config_url 存在时以其解析结果为准）。也支持本地路径。
+    #[serde(default)]
+    pub config_url: Option<String>,
     /// 用户已有的本地模型路径（存在则优先直接使用，不下载）。
     #[serde(default)]
     pub local_path: Option<PathBuf>,

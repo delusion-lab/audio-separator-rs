@@ -76,33 +76,42 @@ impl ModelManager {
     ) -> Result<ResolvedModel> {
         match model {
             ModelRef::Name(name) => {
-                let entry = self.list.get(name).ok_or_else(|| {
+                let mut entry = self.list.get(name).ok_or_else(|| {
                     Error::Model(format!(
                         "模型「{name}」不在清单中；可用 --models-file/--models-url 指定清单，或直接提供模型 URL / 本地路径"
                     ))
-                })?;
-                if let Some(lp) = &entry.local_path {
+                })?
+                .clone();
+                // 模型参数配置（yaml/json，与权重同仓库发布）：config_url 存在时
+                // 懒下载/读取并解析，解析结果作为架构参数的权威来源（替换内嵌 params）。
+                if let Some(cfg) = entry.config_url.clone() {
+                    entry.params = self.load_config(&cfg, name, progress, cancel)?;
+                }
+                let local_path = entry.local_path.clone();
+                if let Some(lp) = &local_path {
                     if !lp.exists() {
                         return Err(Error::Model(format!(
                             "模型条目声明的本地路径不存在: {}",
                             lp.display()
                         )));
                     }
+                    let architecture = entry.architecture.clone();
                     return Ok(ResolvedModel {
-                        entry: Some(entry.clone()),
+                        entry: Some(entry),
                         local_path: lp.clone(),
-                        architecture: entry.architecture.clone(),
+                        architecture,
                     });
                 }
-                let url = entry.source_url.as_ref().ok_or_else(|| {
+                let url = entry.source_url.clone().ok_or_else(|| {
                     Error::Model(format!("模型「{name}」缺少 source_url 且未配置 local_path"))
                 })?;
+                let architecture = entry.architecture.clone();
                 let dest = self.cache_dir.join(sanitize_name(name));
-                self.download_if_missing(url, &dest, entry.sha256.as_deref(), progress, cancel)?;
+                self.download_if_missing(&url, &dest, entry.sha256.as_deref(), progress, cancel)?;
                 Ok(ResolvedModel {
-                    entry: Some(entry.clone()),
+                    entry: Some(entry),
                     local_path: dest,
-                    architecture: entry.architecture.clone(),
+                    architecture,
                 })
             }
             ModelRef::Url { url, arch } => {
@@ -207,6 +216,42 @@ impl ModelManager {
         }
         std::fs::rename(&tmp, dest)?;
         Ok(())
+    }
+
+    /// 加载并解析模型参数配置（yaml/json，URL 或本地路径）：URL 按模型名缓存到
+    /// `cache_dir/configs/`，解析结果（audio/model 段拍平）作为架构参数返回。
+    fn load_config(
+        &self,
+        config: &str,
+        name: &str,
+        progress: Option<&mpsc::Sender<ProgressEvent>>,
+        cancel: Option<&CancellationToken>,
+    ) -> Result<serde_json::Value> {
+        let path = if config.starts_with("http://") || config.starts_with("https://") {
+            let file = url_file_name(config);
+            let ext = file
+                .rsplit('.')
+                .next()
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "yaml".to_string());
+            let dest = self
+                .cache_dir
+                .join("configs")
+                .join(format!("{}.{}", sanitize_name(name), ext));
+            self.download_if_missing(config, &dest, None, progress, cancel)?;
+            dest
+        } else {
+            let p = PathBuf::from(config);
+            if !p.exists() {
+                return Err(Error::Model(format!(
+                    "模型参数配置路径不存在: {}",
+                    p.display()
+                )));
+            }
+            p
+        };
+        let text = std::fs::read_to_string(&path)?;
+        crate::model_config::parse_config(&text)
     }
 }
 
