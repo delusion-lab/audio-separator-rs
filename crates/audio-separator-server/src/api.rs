@@ -5,6 +5,8 @@ use std::time::Instant;
 
 use axum::body::Body;
 use axum::extract::{Multipart, Path as AxumPath, Query, State};
+use axum::routing::{delete, get, post};
+use axum::Router;
 use axum::http::{header, HeaderValue, Request, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
@@ -431,5 +433,118 @@ fn sanitize_file_name(name: &str) -> String {
         "audio.bin".to_string()
     } else {
         cleaned
+    }
+}
+
+
+/// 组装完整路由（含鉴权中间件）。
+pub fn build_router(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/api/v1/separate", post(separate))
+        .route("/api/v1/tasks/{id}", get(task_status))
+        .route("/api/v1/tasks/{id}/download", get(download))
+        .route("/api/v1/tasks/{id}", delete(cancel))
+        .route("/api/v1/models", get(models))
+        .route("/api/v1/health", get(health))
+        .layer(axum::middleware::from_fn_with_state(Arc::clone(&state), auth))
+        .with_state(state)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::store::InMemoryTaskStore;
+    use axum::http::Request;
+    use axum::http::StatusCode;
+    use tower::ServiceExt;
+
+    fn test_state(auth: Option<String>) -> Arc<AppState> {
+        let mut cfg = audio_separator_core::config::Config::default();
+        cfg.server.auth_token = auth;
+        Arc::new(AppState {
+            cfg,
+            store: Arc::new(InMemoryTaskStore::new()),
+            local_manifest: audio_separator_core::model::ModelList {
+                version: 0,
+                models: Vec::new(),
+            },
+            mvsep_client: None,
+            upload_dir: std::env::temp_dir(),
+            started: Instant::now(),
+        })
+    }
+
+    #[tokio::test]
+    async fn health_ok() {
+        let app = build_router(test_state(None));
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn models_local_ok_without_auth() {
+        let app = build_router(test_state(None));
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/models?backend=local")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn auth_rejects_and_accepts() {
+        let app = build_router(test_state(Some("secret".to_string())));
+        let res = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
+
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/health")
+                    .header("authorization", "Bearer secret")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn auth_wrong_token_rejected() {
+        let app = build_router(test_state(Some("secret".to_string())));
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/health")
+                    .header("authorization", "Bearer wrong")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::UNAUTHORIZED);
     }
 }

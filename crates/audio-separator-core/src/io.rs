@@ -280,8 +280,15 @@ fn write_flac(
         bits,
         sample_rate as usize,
     );
-    let stream = flacenc::encode_with_fixed_block_size(&config, source, config.block_size)
+    let mut stream = flacenc::encode_with_fixed_block_size(&config, source, config.block_size)
         .map_err(|e| Error::Format(format!("FLAC 编码失败: {e:?}")))?;
+    // flacenc 会把 STREAMINFO 的 min_block_size 更新为末帧长度；fixed 块流要求
+    // min==max，否则 symphonia 严格帧头校验会拒绝（报 end of stream），这里重置。
+    let bs = config.block_size;
+    stream
+        .stream_info_mut()
+        .set_block_sizes(bs, bs)
+        .map_err(|e| Error::Format(format!("FLAC STREAMINFO 重置失败: {e}")))?;
     let mut sink = ByteSink::with_capacity(stream.count_bits());
     stream
         .write(&mut sink)
@@ -318,4 +325,94 @@ fn write_mp3(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) -> R
     std::fs::write(path, bytes)
         .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("写入 {} 失败: {e}", path.display()))))?;
     Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    /// 生成唯一临时文件路径。
+    fn tmp_path(ext: &str) -> PathBuf {
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("asep-test-{ts}.{ext}"))
+    }
+
+    /// 2s 立体声测试信号：左声道 440Hz、右声道 880Hz 正弦。
+    fn test_signal(sample_rate: u32, channels: u16) -> Vec<f32> {
+        let n = (sample_rate as usize) * 2;
+        let mut v = Vec::with_capacity(n * channels as usize);
+        for i in 0..n {
+            let t = i as f32 / sample_rate as f32;
+            for ch in 0..channels {
+                let f = if ch == 0 { 440.0 } else { 880.0 };
+                v.push((std::f32::consts::TAU * f * t).sin() * 0.5);
+            }
+        }
+        v
+    }
+
+    #[test]
+    fn write_wav16_roundtrip() {
+        let p = tmp_path("wav");
+        write_wav(&p, &test_signal(44100, 2), 44100, 2).unwrap();
+        let d = decode(&p).unwrap();
+        assert_eq!((d.sample_rate, d.channels), (44100, 2));
+        assert_eq!(d.samples.len(), 44100 * 2 * 2);
+        std::fs::remove_file(p).ok();
+    }
+
+    #[test]
+    fn write_wav32_float_roundtrip() {
+        let p = tmp_path("wav");
+        write_audio(&p, &test_signal(48000, 2), 48000, 2, crate::model::OutputFormat::Wav32)
+            .unwrap();
+        let d = decode(&p).unwrap();
+        assert_eq!((d.sample_rate, d.channels), (48000, 2));
+        assert_eq!(d.samples.len(), 48000 * 2 * 2);
+        std::fs::remove_file(p).ok();
+    }
+
+    #[test]
+    fn write_flac16_roundtrip() {
+        let p = tmp_path("flac");
+        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::Flac16)
+            .unwrap();
+        let d = decode(&p).unwrap();
+        assert_eq!((d.sample_rate, d.channels), (44100, 2));
+        assert_eq!(d.samples.len(), 44100 * 2 * 2);
+        std::fs::remove_file(p).ok();
+    }
+
+    #[test]
+    fn write_flac24_roundtrip() {
+        let p = tmp_path("flac");
+        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::Flac24)
+            .unwrap();
+        let d = decode(&p).unwrap();
+        assert_eq!((d.sample_rate, d.channels), (44100, 2));
+        assert_eq!(d.samples.len(), 44100 * 2 * 2);
+        std::fs::remove_file(p).ok();
+    }
+
+    #[test]
+    fn write_mp3_roundtrip() {
+        let p = tmp_path("mp3");
+        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::Mp3).unwrap();
+        let d = decode(&p).unwrap();
+        assert_eq!((d.sample_rate, d.channels), (44100, 2));
+        // MP3 帧填充：时长允许 ±50ms 误差。
+        assert!((d.samples.len() as i64 - (44100 * 2 * 2) as i64).abs() < 44100 / 20);
+        std::fs::remove_file(p).ok();
+    }
+
+    #[test]
+    fn write_m4a_rejected() {
+        let p = tmp_path("m4a");
+        let r = write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::M4a);
+        assert!(r.is_err());
+    }
 }

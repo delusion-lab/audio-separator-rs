@@ -15,8 +15,6 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
-use axum::Router;
-use axum::routing::{delete, get, post};
 use tokio::net::TcpListener;
 
 use audio_separator_core::config::{Config, ModelListSource};
@@ -147,15 +145,7 @@ async fn main() {
         started: Instant::now(),
     });
 
-    let app = Router::new()
-        .route("/api/v1/separate", post(api::separate))
-        .route("/api/v1/tasks/{id}", get(api::task_status))
-        .route("/api/v1/tasks/{id}/download", get(api::download))
-        .route("/api/v1/tasks/{id}", delete(api::cancel))
-        .route("/api/v1/models", get(api::models))
-        .route("/api/v1/health", get(api::health))
-        .layer(axum::middleware::from_fn_with_state(Arc::clone(&state), api::auth))
-        .with_state(state);
+    let app = api::build_router(state);
 
     let listener = match TcpListener::bind(&cfg.server.addr).await {
         Ok(l) => l,
