@@ -201,7 +201,7 @@ fn run_local(
             }
             other => {
                 return Err(Error::Backend(format!(
-                    "architecture \"{other}\" not implemented yet (Roformer family delivered in M2)"
+                    "architecture \"{other}\" is not supported by the local backend (supported: mdx / bs_roformer / mel_band_roformer / bs_polarformer); this model may be available via --backend mvsep if it has a mvsep.sep_type mapping"
                 )));
             }
         };

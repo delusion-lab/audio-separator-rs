@@ -135,6 +135,9 @@ pub struct ModelEntry {
     /// MVSEP 云后端映射（可选）：按名引用时，MVSEP 后端据此提交 sep_type 与附加选项。
     #[serde(default)]
     pub mvsep: Option<MvsepEntry>,
+    /// 模型排名/推荐分数（可选）：musdb SDR / 社区排名等，含数据来源标注。
+    #[serde(default)]
+    pub scores: Option<ModelScores>,
 }
 
 /// MVSEP 云后端条目映射：平台分离类型 ID 与附加选项。
@@ -145,6 +148,26 @@ pub struct MvsepEntry {
     /// 平台附加选项（`add_opt1/2/3` 键值，如 `{"add_opt1": "81"}`）；未列出的用平台默认。
     #[serde(default)]
     pub add_opts: serde_json::Value,
+}
+
+/// 模型排名/推荐分数（多源数据，可选）。
+///
+/// 数据来源标注在 `sources` 中；当前已接入 musdb18-hq 中位 SDR，
+/// 社区 Google Doc 排名待补（community_rank 预留）。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ModelScores {
+    /// MUSDB18-HQ vocals 中位 SDR（dB），主排名指标。
+    #[serde(default)]
+    pub musdb_sdr: Option<f64>,
+    /// MUSDB18-HQ instrumental 中位 SDR（dB）。
+    #[serde(default)]
+    pub musdb_sdr_instrumental: Option<f64>,
+    /// 社区排名（Google Doc 维护，数据源待接入）。
+    #[serde(default)]
+    pub community_rank: Option<u32>,
+    /// 数据来源标注，如 ["musdb18hq", "python-audio-separator/models-scores.json"]。
+    #[serde(default)]
+    pub sources: Vec<String>,
 }
 
 /// 模型清单：本地 JSON 文件或远程 URL 均可，条目集中维护。

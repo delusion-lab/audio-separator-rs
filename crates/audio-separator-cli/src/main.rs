@@ -52,6 +52,12 @@ enum Command {
         /// Bearer token for the asep-server API (optional).
         #[arg(long)]
         auth_token: Option<String>,
+        /// 排序方式：name（按名称，默认）/ sdr（按 musdb SDR 降序）。
+        #[arg(long, value_enum, default_value_t = ModelsSort::Name)]
+        sort: ModelsSort,
+        /// 仅显示排名前 N 个模型（按 SDR 降序；0 表示全部）。
+        #[arg(long, default_value_t = 0)]
+        top: usize,
     },
 
     /// Show model details (architecture, engine, stems, params, source).
@@ -204,6 +210,15 @@ enum BackendArg {
     Server,
 }
 
+/// `models` 子命令排序方式。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+enum ModelsSort {
+    /// 按模型名称字母序（默认）。
+    Name,
+    /// 按 MUSDB18-HQ vocals 中位 SDR 降序（无分数的排最后）。
+    Sdr,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 enum FormatArg {
     /// 16-bit PCM WAV (default).
@@ -263,7 +278,9 @@ async fn main() {
             models_url,
             server_url,
             auth_token,
-        } => run_models(backend, models_file, models_url, server_url, auth_token).await,
+            sort,
+            top,
+        } => run_models(backend, models_file, models_url, server_url, auth_token, sort, top).await,
         Command::ModelInfo {
             model,
             models_file,
@@ -629,6 +646,13 @@ fn build_config(models_file: Option<PathBuf>, models_url: Option<String>) -> Res
     if let Some(u) = &models_url {
         cfg.models.list = Some(ModelListSource::Url(u.clone()));
     }
+    // 兜底：未指定清单源且工作目录存在 models.json 时自动加载（与 run_separate 行为一致）
+    if cfg.models.list.is_none() {
+        let local = Path::new("models.json");
+        if local.exists() {
+            cfg.models.list = Some(ModelListSource::Path(local.to_path_buf()));
+        }
+    }
     Ok(cfg)
 }
 
@@ -639,12 +663,14 @@ async fn run_models(
     models_url: Option<String>,
     server_url: String,
     auth_token: Option<String>,
+    sort: ModelsSort,
+    top: usize,
 ) -> Result<()> {
     if backend == BackendArg::Mvsep {
         return run_models_mvsep().await;
     }
     if backend == BackendArg::Server {
-        return run_models_server(&server_url, auth_token).await;
+        return run_models_server(&server_url, auth_token, sort, top).await;
     }
     let cfg = build_config(models_file, models_url)?;
     let manager = tokio::task::spawn_blocking(move || {
@@ -652,25 +678,75 @@ async fn run_models(
     })
     .await
     .map_err(|e| Error::Other(format!("model list load failed: {e}")))??;
-    let list = manager.list();
-    print_model_list(list);
+    let mut list = manager.list().clone();
+    apply_list_options(&mut list, sort, top);
+    print_model_list(&list, sort, top);
     Ok(())
 }
 
+/// 按 sort/top 就地处理清单：SDR 降序（无分数排最后）+ 可选截取前 N。
+fn apply_list_options(
+    list: &mut audio_separator_core::model::ModelList,
+    sort: ModelsSort,
+    top: usize,
+) {
+    if sort == ModelsSort::Sdr {
+        list.models.sort_by(|a, b| {
+            let sa = a.scores.as_ref().and_then(|s| s.musdb_sdr);
+            let sb = b.scores.as_ref().and_then(|s| s.musdb_sdr);
+            match (sa, sb) {
+                (Some(x), Some(y)) => y.partial_cmp(&x).unwrap_or(std::cmp::Ordering::Equal),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            }
+        });
+    }
+    if top > 0 && list.models.len() > top {
+        list.models.truncate(top);
+    }
+}
+
 /// 打印模型清单（本地 manifest / server API 通用）。
-fn print_model_list(list: &audio_separator_core::model::ModelList) {
+fn print_model_list(
+    list: &audio_separator_core::model::ModelList,
+    sort: ModelsSort,
+    top: usize,
+) {
     if list.models.is_empty() {
         println!("model list is empty (models.list not configured or list has no models)");
         return;
     }
-    println!("model list v{} ({} models)", list.version, list.models.len());
-    for m in &list.models {
+    if sort == ModelsSort::Sdr {
+        let suffix = if top > 0 {
+            format!(", sorted by SDR descending, top {top}")
+        } else {
+            ", sorted by SDR descending".to_string()
+        };
+        println!(
+            "model list v{} ({} models{suffix})",
+            list.version,
+            list.models.len()
+        );
+    } else {
+        println!("model list v{} ({} models)", list.version, list.models.len());
+    }
+    for (i, m) in list.models.iter().enumerate() {
         let stems = m.stems.join(", ");
         let mvsep = m
             .mvsep
             .as_ref()
             .map(|mv| format!(" mvsep:{}", mv.sep_type))
             .unwrap_or_default();
+        let scores_seg = match (
+            m.scores.as_ref().and_then(|s| s.musdb_sdr),
+            m.scores.as_ref().and_then(|s| s.community_rank),
+        ) {
+            (Some(sdr), Some(rank)) => format!(" | SDR: {sdr:.2}dB rank:#{rank}"),
+            (Some(sdr), None) => format!(" | SDR: {sdr:.2}dB"),
+            (None, Some(rank)) => format!(" | rank:#{rank}"),
+            (None, None) => String::new(),
+        };
         let src = m
             .local_path
             .as_ref()
@@ -681,20 +757,40 @@ fn print_model_list(list: &audio_separator_core::model::ModelList) {
                     .map(|u| format!("download:{}", u))
             })
             .unwrap_or_else(|| "no source".to_string());
-        println!(
-            "- {} [{} / {}] stems: {} | {}{}",
-            m.name, m.architecture, m.engine, stems, src, mvsep
-        );
+        if sort == ModelsSort::Sdr {
+            println!(
+                "{:>2}. {} [{} / {}] stems: {}{} | {}{}",
+                i + 1,
+                m.name,
+                m.architecture,
+                m.engine,
+                stems,
+                scores_seg,
+                src,
+                mvsep
+            );
+        } else {
+            println!(
+                "- {} [{} / {}] stems: {}{} | {}{}",
+                m.name, m.architecture, m.engine, stems, scores_seg, src, mvsep
+            );
+        }
     }
 }
 
 /// `models --backend server`：从 asep-server API 拉取本地清单。
-async fn run_models_server(server_url: &str, auth_token: Option<String>) -> Result<()> {
+async fn run_models_server(
+    server_url: &str,
+    auth_token: Option<String>,
+    sort: ModelsSort,
+    top: usize,
+) -> Result<()> {
     let client = ServerClient::new(server_url, auth_token)?;
     let v = client.models("local").await?;
-    let list: audio_separator_core::model::ModelList = serde_json::from_value(v)
+    let mut list: audio_separator_core::model::ModelList = serde_json::from_value(v)
         .map_err(|e| Error::Other(format!("invalid server model list: {e}")))?;
-    print_model_list(&list);
+    apply_list_options(&mut list, sort, top);
+    print_model_list(&list, sort, top);
     Ok(())
 }
 

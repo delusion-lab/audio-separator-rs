@@ -102,6 +102,26 @@ asep job-status <task_id> --server-url http://127.0.0.1:8080
 
 Notes: a local input file is uploaded to the server; a URL input is passed through as `audio_url` (URL input is only supported by the MVSEP backend on the server side). The server must already be running — the CLI does not start it. The client connects to `--server-url` directly and does not use the download proxy.
 
+### Model list & ranking
+
+List all models in the manifest, optionally ranked by MUSDB18-HQ SDR:
+
+```sh
+# List all models (sorted by name)
+asep models
+
+# Rank by vocal separation quality (MUSDB18-HQ median SDR, descending)
+asep models --sort sdr
+
+# Top 10 models by SDR
+asep models --sort sdr --top 10
+
+# Inspect a single model (includes scores if available)
+asep model-info model_bs_roformer_ep_368_sdr_12.9628
+```
+
+Scores come from the python-audio-separator benchmark (MUSDB18-HQ median SDR). Community ranking (Google Doc) is planned. Models without SDR data are listed last when sorting by SDR. Architectures other than mdx / bs_roformer / mel_band_roformer / bs_polarformer are catalogued for the MVSEP cloud backend but cannot run locally.
+
 ### Server
 
 ```sh

@@ -67,6 +67,7 @@ impl ModelManager {
             license: None,
             params,
             mvsep: None,
+            scores: None,
         }))
     }
 

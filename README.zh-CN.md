@@ -100,6 +100,26 @@ asep job-status <task_id> --server-url http://127.0.0.1:8080
 
 说明：本地文件会上传到服务端；URL 输入以 `audio_url` 字段透传（服务端仅 MVSEP 后端支持 URL 输入）。服务端需先自行启动，CLI 不会代为启动。客户端直连 `--server-url`，不经过下载代理。
 
+### 模型清单与排名
+
+列出 manifest 中的所有模型，可按 MUSDB18-HQ SDR 排序：
+
+```sh
+# 列出所有模型（按名称排序）
+asep models
+
+# 按人声分离质量排名（MUSDB18-HQ 中位 SDR，降序）
+asep models --sort sdr
+
+# SDR 前 10 名
+asep models --sort sdr --top 10
+
+# 查看单个模型详情（含分数数据）
+asep model-info model_bs_roformer_ep_368_sdr_12.9628
+```
+
+分数来自 python-audio-separator 基准测试（MUSDB18-HQ 中位 SDR）。社区排名（Google Doc）待接入。按 SDR 排序时无分数的模型排在最后。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外的架构收录用于 MVSEP 云后端，本地无法运行。
+
 ### 服务端
 
 ```sh
