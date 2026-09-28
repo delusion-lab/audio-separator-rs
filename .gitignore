@@ -35,3 +35,5 @@ test.log
 
 # HTTP 服务上传目录
 uploads/
+# Release packages (scripts/package-release.ps1)
+dist/

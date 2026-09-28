@@ -204,13 +204,16 @@ pub fn write_wav(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) 
     Ok(())
 }
 
-/// 按输出格式写音频文件（M5：WAV16/32、FLAC16/24、MP3；M4A 本地暂不支持）。
+/// 按输出格式写音频文件（WAV16/32、FLAC16/24、MP3 纯 Rust；M4A 经外部 ffmpeg 编码）。
+///
+/// `ffmpeg`：ffmpeg 可执行文件路径；为 `None` 时从 PATH 查找 `ffmpeg`。
 pub fn write_audio(
     path: &Path,
     samples: &[f32],
     sample_rate: u32,
     channels: u16,
     format: crate::model::OutputFormat,
+    ffmpeg: Option<&str>,
 ) -> Result<()> {
     match format {
         crate::model::OutputFormat::Wav16 => write_wav(path, samples, sample_rate, channels),
@@ -218,9 +221,7 @@ pub fn write_audio(
         crate::model::OutputFormat::Flac16 => write_flac(path, samples, sample_rate, channels, 16),
         crate::model::OutputFormat::Flac24 => write_flac(path, samples, sample_rate, channels, 24),
         crate::model::OutputFormat::Mp3 => write_mp3(path, samples, sample_rate, channels),
-        crate::model::OutputFormat::M4a => Err(Error::Backend(
-            "local backend does not support M4A output yet (use the MVSEP backend, or pick wav/flac/mp3)".to_string(),
-        )),
+        crate::model::OutputFormat::M4a => write_m4a(path, samples, sample_rate, channels, ffmpeg),
     }
 }
 
@@ -326,6 +327,85 @@ fn write_mp3(path: &Path, samples: &[f32], sample_rate: u32, channels: u16) -> R
         .map_err(|e| Error::Io(std::io::Error::new(e.kind(), format!("failed to write {}: {e}", path.display()))))?;
     Ok(())
 }
+
+/// 交织 f32 采样写为 M4A（AAC-LC 320kbps，经外部 ffmpeg：s16le PCM 管道 → `-f ipod`）。
+fn write_m4a(
+    path: &Path,
+    samples: &[f32],
+    sample_rate: u32,
+    channels: u16,
+    ffmpeg: Option<&str>,
+) -> Result<()> {
+    use std::io::Write;
+    use std::process::{Command, Stdio};
+
+    // f32 → s16le PCM
+    let mut pcm = Vec::with_capacity(samples.len() * 2);
+    for &s in samples {
+        let v = (s.clamp(-1.0, 1.0) * i16::MAX as f32) as i16;
+        pcm.extend_from_slice(&v.to_le_bytes());
+    }
+
+    let mut cmd = match ffmpeg {
+        Some(p) => {
+            let mut c = Command::new(p);
+            c.arg("-y");
+            c
+        }
+        None => {
+            let mut c = Command::new("ffmpeg");
+            c.arg("-y");
+            c
+        }
+    };
+    cmd.args(["-f", "s16le"])
+        .arg("-ar")
+        .arg(sample_rate.to_string())
+        .arg("-ac")
+        .arg(channels.to_string())
+        .arg("-i")
+        .arg("pipe:0")
+        .arg("-c:a")
+        .arg("aac")
+        .arg("-b:a")
+        .arg("320k")
+        .arg("-f")
+        .arg("ipod")
+        .arg(path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped());
+
+    let mut child = cmd.spawn().map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            Error::Backend(
+                "M4A output requires ffmpeg: set config ffmpeg.path / --ffmpeg, or install ffmpeg and add it to PATH"
+                    .to_string(),
+            )
+        } else {
+            Error::Backend(format!("failed to start ffmpeg: {e}"))
+        }
+    })?;
+    {
+        let stdin = child
+            .stdin
+            .as_mut()
+            .ok_or_else(|| Error::Backend("failed to open ffmpeg stdin".to_string()))?;
+        stdin
+            .write_all(&pcm)
+            .map_err(|e| Error::Backend(format!("failed to write ffmpeg stdin: {e}")))?;
+    }
+    drop(child.stdin.take()); // 关闭 stdin → ffmpeg 读到 EOF
+    let out = child
+        .wait_with_output()
+        .map_err(|e| Error::Backend(format!("ffmpeg wait failed: {e}")))?;
+    if !out.status.success() {
+        let msg = String::from_utf8_lossy(&out.stderr);
+        let msg: String = msg.chars().take(400).collect();
+        return Err(Error::Backend(format!("ffmpeg encoding failed: {msg}")));
+    }
+    Ok(())
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -368,7 +448,7 @@ mod tests {
     #[test]
     fn write_wav32_float_roundtrip() {
         let p = tmp_path("wav");
-        write_audio(&p, &test_signal(48000, 2), 48000, 2, crate::model::OutputFormat::Wav32)
+        write_audio(&p, &test_signal(48000, 2), 48000, 2, crate::model::OutputFormat::Wav32, None)
             .unwrap();
         let d = decode(&p).unwrap();
         assert_eq!((d.sample_rate, d.channels), (48000, 2));
@@ -379,7 +459,7 @@ mod tests {
     #[test]
     fn write_flac16_roundtrip() {
         let p = tmp_path("flac");
-        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::Flac16)
+        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::Flac16, None)
             .unwrap();
         let d = decode(&p).unwrap();
         assert_eq!((d.sample_rate, d.channels), (44100, 2));
@@ -390,7 +470,7 @@ mod tests {
     #[test]
     fn write_flac24_roundtrip() {
         let p = tmp_path("flac");
-        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::Flac24)
+        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::Flac24, None)
             .unwrap();
         let d = decode(&p).unwrap();
         assert_eq!((d.sample_rate, d.channels), (44100, 2));
@@ -401,7 +481,7 @@ mod tests {
     #[test]
     fn write_mp3_roundtrip() {
         let p = tmp_path("mp3");
-        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::Mp3).unwrap();
+        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::Mp3, None).unwrap();
         let d = decode(&p).unwrap();
         assert_eq!((d.sample_rate, d.channels), (44100, 2));
         // MP3 帧填充：时长允许 ±50ms 误差。
@@ -409,10 +489,41 @@ mod tests {
         std::fs::remove_file(p).ok();
     }
 
+    /// 本机是否有 ffmpeg（PATH）。
+    fn ffmpeg_available() -> bool {
+        std::process::Command::new("ffmpeg")
+            .arg("-version")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false)
+    }
+
     #[test]
-    fn write_m4a_rejected() {
+    fn write_m4a_via_ffmpeg() {
+        if !ffmpeg_available() {
+            eprintln!("skipped: ffmpeg not found on PATH");
+            return;
+        }
         let p = tmp_path("m4a");
-        let r = write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::M4a);
-        assert!(r.is_err());
+        write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::M4a, None)
+            .unwrap();
+        let d = decode(&p).unwrap();
+        assert_eq!((d.sample_rate, d.channels), (44100, 2));
+        // AAC 编码器固有 encoder delay（priming 采样 + 帧填充）约 87ms，容差放宽到 ±150ms。
+        assert!((d.samples.len() as i64 - (44100 * 2 * 2) as i64).abs() < 44100 * 150 / 1000);
+        std::fs::remove_file(p).ok();
+    }
+
+    #[test]
+    fn write_m4a_reports_missing_ffmpeg() {
+        if ffmpeg_available() {
+            return; // 有 ffmpeg 时该错误路径不触发
+        }
+        let p = tmp_path("m4a");
+        let r = write_audio(&p, &test_signal(44100, 2), 44100, 2, crate::model::OutputFormat::M4a, None);
+        let err = r.err().expect("should fail without ffmpeg");
+        assert!(format!("{err}").contains("ffmpeg"), "got: {err}");
     }
 }

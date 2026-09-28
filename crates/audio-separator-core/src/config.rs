@@ -129,6 +129,14 @@ impl Default for ServerConfig {
     }
 }
 
+/// ffmpeg 配置（本地 M4A 编码）。
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct FfmpegConfig {
+    /// ffmpeg 可执行文件路径；为空时从 PATH 查找 `ffmpeg`。
+    pub path: Option<String>,
+}
+
 /// 输出相关配置。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -161,6 +169,8 @@ pub struct Config {
     pub network: NetworkConfig,
     /// 输出配置。
     pub output: OutputConfig,
+    /// ffmpeg 配置。
+    pub ffmpeg: FfmpegConfig,
 }
 
 impl Default for Config {
@@ -172,6 +182,7 @@ impl Default for Config {
             server: ServerConfig::default(),
             network: NetworkConfig::default(),
             output: OutputConfig::default(),
+            ffmpeg: FfmpegConfig::default(),
         }
     }
 }

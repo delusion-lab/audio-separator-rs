@@ -50,8 +50,12 @@ cargo build --release --workspace
 # 首次使用某模型时自动从模型清单下载权重（清单见 models.json）
 asep separate input.wav -o out/ --model model_bs_polarformer_float16
 
-# 指定输出格式（wav/wav32/flac/flac24/mp3/m4a）
+# 指定输出格式（wav/wav32/flac/flac24/mp3/m4a）。本地后端 M4A
+# 通过外部 ffmpeg 进程编码（AAC 320 kbps）
 asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
+
+# M4A 指定 ffmpeg 路径（查找顺序：--ffmpeg > config ffmpeg.path > PATH）
+asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format m4a --ffmpeg "C:\path\to\ffmpeg.exe
 
 # 直传模型权重 + 参数配置（yaml/json），完全绕过 models.json：
 #   --model 支持 下载 URL / 本地模型路径（+ --arch 指定架构）
@@ -59,6 +63,10 @@ asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
 asep separate input.wav -o out/ --model ./model.ckpt --arch bs_polarformer --config-url ./config.yaml
 asep separate input.wav -o out/ --model https://.../model.ckpt --arch mel_band_roformer --config-url https://.../config.yaml
 ```
+
+### M4A 输出（本地后端）
+
+M4A 通过外部 `ffmpeg` 进程编码（AAC-LC 320 kbps）。查找顺序：`--ffmpeg <path>`（CLI）→ 配置 `ffmpeg.path`（TOML `[ffmpeg] path = "..."`）→ `PATH`。找不到 ffmpeg 时返回明确错误提示设置路径或安装 ffmpeg。M4A *输入*文件由 symphonia 原生解码，无需 ffmpeg。
 
 ### CLI 分离（MVSEP 云）
 

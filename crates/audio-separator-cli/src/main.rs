@@ -176,6 +176,10 @@ struct SeparateArgs {
     #[arg(long)]
     auth_token: Option<String>,
 
+    /// ffmpeg executable path (for local M4A output; defaults to PATH lookup).
+    #[arg(long)]
+    ffmpeg: Option<String>,
+
     /// Verbosity (repeatable).
     #[arg(short, long, action = clap::ArgAction::Count)]
     verbose: u8,
@@ -308,6 +312,9 @@ async fn run_separate(args: SeparateArgs) -> Result<()> {
     }
     if let Some(c) = args.concurrency {
         cfg.mvsep.concurrency = c;
+    }
+    if let Some(f) = &args.ffmpeg {
+        cfg.ffmpeg.path = Some(f.clone());
     }
 
     let model = parse_model_ref(&args.model, args.arch.clone())?;

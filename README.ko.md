@@ -50,8 +50,12 @@ cargo build --release --workspace
 # 모델을 처음 사용할 때 모델 목록(models.json 참조)에서 가중치를 자동 다운로드
 asep separate input.wav -o out/ --model model_bs_polarformer_float16
 
-# 출력 형식 지정(wav/wav32/flac/flac24/mp3/m4a)
+# 출력 형식 지정(wav/wav32/flac/flac24/mp3/m4a). 로컬 백엔드의 M4A는
+# 외부 ffmpeg 프로세스로 인코딩(AAC 320kbps)
 asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
+
+# ffmpeg 경로 명시(탐색 순서: --ffmpeg > config ffmpeg.path > PATH)
+asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format m4a --ffmpeg "C:\path\to\ffmpeg.exe
 
 # 모델 가중치 + 파라미터 설정(yaml/json)을 직접 지정하여 models.json을 완전히 우회:
 #   --model       다운로드 URL / 로컬 모델 경로(+ --arch로 아키텍처 지정)
@@ -59,6 +63,10 @@ asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
 asep separate input.wav -o out/ --model ./model.ckpt --arch bs_polarformer --config-url ./config.yaml
 asep separate input.wav -o out/ --model https://.../model.ckpt --arch mel_band_roformer --config-url https://.../config.yaml
 ```
+
+### M4A 출력(로컬 백엔드)
+
+M4A는 외부 `ffmpeg` 프로세스로 인코딩됩니다(AAC-LC 320kbps). ffmpeg 탐색 순서: `--ffmpeg <path>`(CLI) → 설정 `ffmpeg.path`(TOML `[ffmpeg] path = "..."`) → `PATH`. ffmpeg를 찾지 못하면 경로 설정 또는 설치를 안내하는 명확한 오류를 반환합니다. M4A *입력* 파일은 symphonia로 네이티브 디코딩되며 ffmpeg가 필요 없습니다.
 
 ### CLI 분리(MVSEP 클라우드)
 

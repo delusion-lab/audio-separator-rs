@@ -38,6 +38,7 @@ const ROFORMER_SAMPLE_RATE: u32 = 44_100;
 /// 本地分离后端（M1：mdx 架构端到端；M2：三款 Roformer 接入）。
 pub struct LocalSeparator {
     manager: Arc<ModelManager>,
+    ffmpeg: Option<String>,
 }
 
 impl LocalSeparator {
@@ -48,6 +49,7 @@ impl LocalSeparator {
                 &config.models,
                 config.network.proxy.as_deref(),
             )?),
+            ffmpeg: config.ffmpeg.path.clone(),
         })
     }
 }
@@ -68,6 +70,7 @@ impl Separator for LocalSeparator {
         let output_format = req.output_format;
         let output_dir = req.output_dir.clone();
         let select_stems = req.select_stems.clone();
+        let ffmpeg = self.ffmpeg.clone();
 
         let job = spawn_blocking(move || {
             emit(
@@ -84,6 +87,7 @@ impl Separator for LocalSeparator {
                 select_stems,
                 progress.as_ref(),
                 cancel.as_ref(),
+                ffmpeg.as_deref(),
             )
         });
         job.await
@@ -101,6 +105,7 @@ fn run_local(
     select_stems: Option<Vec<String>>,
     progress: Option<&mpsc::Sender<ProgressEvent>>,
     cancel: Option<&CancellationToken>,
+    ffmpeg: Option<&str>,
 ) -> Result<SeparationResult> {
     let started = Instant::now();
 
@@ -215,7 +220,7 @@ fn run_local(
         }
         io::normalize(&mut samples);
         let path = output_dir.join(format!("{name}.{ext}"));
-        io::write_audio(&path, &samples, model_sample_rate, 2, output_format)?;
+        io::write_audio(&path, &samples, model_sample_rate, 2, output_format, ffmpeg)?;
         result_stems.insert(name.clone(), path);
         written += 1;
         if let Some(pr) = progress {

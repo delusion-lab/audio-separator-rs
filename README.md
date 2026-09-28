@@ -50,8 +50,12 @@ Artifacts: `target/release/asep.exe`, `target/release/audio-separator-server.exe
 # On first use, the model weights are downloaded automatically from the model list (see models.json)
 asep separate input.wav -o out/ --model model_bs_polarformer_float16
 
-# Pick the output format (wav/wav32/flac/flac24/mp3/m4a)
+# Pick the output format (wav/wav32/flac/flac24/mp3/m4a). M4A on the local backend
+# is encoded via an external ffmpeg process (AAC 320 kbps)
 asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
+
+# M4A with an explicit ffmpeg path (lookup: --ffmpeg > config ffmpeg.path > PATH)
+asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format m4a --ffmpeg "C:\path\to\ffmpeg.exe
 
 # Pass model weights + parameter config directly (yaml/json), bypassing models.json entirely:
 #   --model       accepts a download URL / local model path (+ --arch to pin the architecture)
@@ -59,6 +63,12 @@ asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
 asep separate input.wav -o out/ --model ./model.ckpt --arch bs_polarformer --config-url ./config.yaml
 asep separate input.wav -o out/ --model https://.../model.ckpt --arch mel_band_roformer --config-url https://.../config.yaml
 ```
+
+### M4A output (local backend)
+
+M4A is encoded with an external `ffmpeg` process (AAC-LC 320 kbps). ffmpeg is looked up in this order:
+`--ffmpeg <path>` (CLI) → config `ffmpeg.path` (TOML `[ffmpeg] path = "..."`) → `PATH`.
+If ffmpeg is not found, a clear error tells you to set a path or install ffmpeg. M4A *input* files are decoded natively by symphonia and need no ffmpeg.
 
 ### CLI separation (MVSEP cloud)
 

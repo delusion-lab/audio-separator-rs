@@ -50,8 +50,12 @@ cargo build --release --workspace
 # モデル初回使用時にモデルリスト（models.json 参照）から自動ダウンロード
 asep separate input.wav -o out/ --model model_bs_polarformer_float16
 
-# 出力フォーマット指定（wav/wav32/flac/flac24/mp3/m4a）
+# 出力フォーマット指定（wav/wav32/flac/flac24/mp3/m4a）。ローカルバックエンドの M4A は
+# 外部 ffmpeg プロセスでエンコード（AAC 320 kbps）
 asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
+
+# ffmpeg のパスを明示（探索順: --ffmpeg > config ffmpeg.path > PATH）
+asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format m4a --ffmpeg "C:\path\to\ffmpeg.exe
 
 # モデル重み + パラメータ設定（yaml/json）を直接指定し、models.json を完全にバイパス:
 #   --model       ダウンロード URL / ローカルパス（+ --arch でアーキテクチャ指定）
@@ -59,6 +63,10 @@ asep separate input.wav -o out/ --model UVR_MDXNET_9482 --format flac
 asep separate input.wav -o out/ --model ./model.ckpt --arch bs_polarformer --config-url ./config.yaml
 asep separate input.wav -o out/ --model https://.../model.ckpt --arch mel_band_roformer --config-url https://.../config.yaml
 ```
+
+### M4A 出力（ローカルバックエンド）
+
+M4A は外部 `ffmpeg` プロセスでエンコードされます（AAC-LC 320 kbps）。ffmpeg の探索順序: `--ffmpeg <path>`（CLI）→ 設定 `ffmpeg.path`（TOML `[ffmpeg] path = "..."`）→ `PATH`。ffmpeg が見つからない場合は、パスの設定かインストールを促す明確なエラーを返します。M4A の*入力*ファイルは symphonia でネイティブにデコードされ、ffmpeg は不要です。
 
 ### CLI での分離（MVSEP クラウド）
 
