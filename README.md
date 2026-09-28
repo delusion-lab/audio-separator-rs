@@ -194,6 +194,9 @@ Ranking / recommendation data is maintained separately from the model list, sinc
 
 Loading follows the same mechanism as the model list: by default the repo-local `rankings.json` is read (the same directory fallback as `models.json`); `--rankings-url <url>` / config `models.rankings = { url = "..." }` pull a remote file; `--rankings-file <path>` / `{ path = "..." }` point at a local one. The ranking file is optional — everything still works without it (community display and sorting simply fall back to empty).
 
+Refresh the MVSEP snapshot any time (community section is left untouched):
+`python scripts/fetch-mvsep-rankings.py --proxy <proxy>` (proxy optional; falls back to env vars).
+
 ## Network & proxy
 
 All network operations (model download, list fetch, MVSEP calls) go through an HTTP proxy uniformly. Resolution order:

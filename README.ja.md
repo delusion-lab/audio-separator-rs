@@ -194,6 +194,9 @@ curl -F "audio=@input.wav" -F "model=model_bs_polarformer_float16" \
 
 読み込みはモデルリストと同じ仕組みです：デフォルトでリポジトリ内の `rankings.json` を読み込み（`models.json` と同じディレクトリフォールバック）；`--rankings-url <url>` / 設定 `models.rankings = { url = "..." }` でリモートファイルを取得；`--rankings-file <path>` / `{ path = "..." }` でローカルファイルを指定。ランキングファイルは任意です——なくてもすべて動作します（コミュニティ表示とソートは空にフォールバック）。
 
+MVSEP スナップショットはいつでも更新できます（community 節は変更されません）:
+`python scripts/fetch-mvsep-rankings.py --proxy <プロキシ>`（プロキシは任意、環境変数にフォールバック）。
+
 ## ネットワークとプロキシ
 
 すべてのネットワーク操作（モデルダウンロード、リスト取得、MVSEP 呼び出し）は HTTP プロキシ経由で統一されます。解決順:

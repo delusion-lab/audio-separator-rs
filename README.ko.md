@@ -194,6 +194,9 @@ curl -F "audio=@input.wav" -F "model=model_bs_polarformer_float16" \
 
 로딩 방식은 모델 목록과 동일합니다: 기본적으로 리포지토리 내 `rankings.json`을 읽음(`models.json`과 같은 디렉터리 폴백); `--rankings-url <url>` / 설정 `models.rankings = { url = "..." }`로 원격 파일 가져오기; `--rankings-file <path>` / `{ path = "..." }`로 로컬 파일 지정. 랭킹 파일은 선택 사항입니다——없어도 모두 정상 동작합니다(커뮤니티 표시와 정렬은 빈 값으로 폴백).
 
+MVSEP 스냅샷은 언제든 갱신할 수 있습니다(community 섹션은 변경되지 않음):
+`python scripts/fetch-mvsep-rankings.py --proxy <프록시>`(프록시 선택 사항, 환경 변수로 폴백).
+
 ## 네트워크와 프록시
 
 모든 네트워크 작업(모델 다운로드, 목록 가져오기, MVSEP 호출)은 HTTP 프록시를 통해 통일됩니다. 해석 순서:

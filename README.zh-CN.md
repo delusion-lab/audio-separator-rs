@@ -194,6 +194,9 @@ curl -F "audio=@input.wav" -F "model=model_bs_polarformer_float16" \
 
 加载机制与模型清单一致：默认读取仓库内 `rankings.json`（与 `models.json` 同目录兜底）；`--rankings-url <url>` / 配置 `models.rankings = { url = "..." }` 拉取远程文件；`--rankings-file <path>` / `{ path = "..." }` 指定本地文件。排名文件可选——缺失时一切照常（社区展示与排序自动降级为空）。
 
+随时可刷新 MVSEP 快照（community 分节不受影响）：
+`python scripts/fetch-mvsep-rankings.py --proxy <代理>`（代理可选，缺省读环境变量）。
+
 ## 网络与代理
 
 所有联网操作（模型下载、清单拉取、MVSEP 调用）统一走 HTTP 代理。解析顺序：
