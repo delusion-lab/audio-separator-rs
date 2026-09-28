@@ -125,13 +125,20 @@ async fn main() {
     )
     .ok();
 
-    // 本地清单（启动时已由 build_separators 加载；此处直接构建用于 /models）
-    let local_manifest = audio_separator_core::backend::local::model_manage::ModelManager::load(
+    // 本地清单与排名（启动时已由 build_separators 加载；此处直接构建用于 /models 与 /rankings）
+    let local_manager = audio_separator_core::backend::local::model_manage::ModelManager::load(
         &cfg.models,
         cfg.network.proxy.as_deref(),
     )
-    .map(|m| m.list().clone())
-    .unwrap_or_else(|_| audio_separator_core::model::ModelList { version: 0, models: Vec::new() });
+    .ok();
+    let local_manifest = local_manager
+        .as_ref()
+        .map(|m| m.list().clone())
+        .unwrap_or_else(|| audio_separator_core::model::ModelList { version: 0, models: Vec::new() });
+    let local_rankings = local_manager
+        .as_ref()
+        .map(|m| m.rankings().clone())
+        .unwrap_or_default();
 
     let store: Arc<dyn store::TaskStore> = Arc::new(store::InMemoryTaskStore::new());
     let _workers = worker::WorkerPool::spawn(
@@ -147,6 +154,7 @@ async fn main() {
         cfg: cfg.clone(),
         store,
         local_manifest,
+        local_rankings,
         mvsep_client,
         upload_dir,
         started: Instant::now(),

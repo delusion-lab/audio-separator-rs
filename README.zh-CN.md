@@ -117,11 +117,17 @@ asep models --sort sdr --top 10
 # 按社区推荐排名（deton24 指南，升序；显示分类+排名）
 asep models --sort community
 
-# 查看单个模型详情（含分数数据）
+# 查看单个模型详情（含 SDR 分数与排名信息）
 asep model-info model_bs_roformer_ep_368_sdr_12.9628
+
+# 排名数据独立存放于 rankings.json，可直接查看：
+asep rankings                            # 社区指南分节，按分类+名次分组
+asep rankings --section mvsep            # MVSEP multisong 榜单快照，按 instrum 名次
+asep rankings --section mvsep --view vocals --top 10
+asep rankings --section community --sort sdr
 ```
 
-分数来自三个来源：python-audio-separator 基准测试（MUSDB18-HQ 中位 SDR）、deton24 UVR-MDX-Demucs-GSEP 社区指南（分类排名 + fullness/bleedless/SDR 指标）、以及 MVSEP 平台目录。按 SDR 排序时无分数的模型排在最后；按社区排名排序时无社区推荐的模型排在最后。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外的架构收录用于 MVSEP 云后端，本地无法运行。
+分数与排名来自三个来源：python-audio-separator 基准测试（MUSDB18-HQ 中位 SDR，保留在 `models.json`）、deton24 UVR-MDX-Demucs-GSEP 社区指南（分类排名 + fullness/bleedless/SDR 指标）、以及 MVSEP multisong 榜单快照（各声部 SDR）。后两者存放于独立的 `rankings.json`（见下）。按 SDR 排序时无分数的模型排在最后；按社区排名排序时无社区推荐的模型排在最后。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外的架构收录用于 MVSEP 云后端，本地无法运行。
 
 ### 服务端
 
@@ -142,6 +148,7 @@ REST 接口：
 | GET | `/api/v1/tasks/{id}/download?stem=` | 下载分轨结果 |
 | DELETE | `/api/v1/tasks/{id}` | 取消运行中任务或清理终态任务 |
 | GET | `/api/v1/models?backend=local\|mvsep` | 模型列表 / MVSEP 算法目录 |
+| GET | `/api/v1/rankings` | 排名数据（社区指南 / MVSEP 榜单快照） |
 | GET | `/api/v1/health` | 健康检查 |
 
 上传示例：
@@ -177,6 +184,15 @@ curl -F "audio=@input.wav" -F "model=model_bs_polarformer_float16" \
 **不经过 models.json 直传**：`--model <URL|本地路径> --config-url <URL|本地路径>`（CLI）或 multipart `config_url` 字段（服务端）
 可完全绕过清单——权重与参数文件均可直接指定，无需在清单中登记条目；按名引用时 `config_url` 覆盖清单条目的同名配置。
 服务端 `POST /api/v1/separate` 的 `config_url` 字段同样生效。
+
+## 排名数据（rankings.json）
+
+排名/推荐数据与模型清单分开维护——其来源（社区指南、MVSEP 榜单）独立于清单更新：
+
+- `community` 分节：deton24 UVR-MDX-Demucs-GSEP 社区指南条目（`name` 与模型清单一致，含 rank / category / metrics / source / url）；
+- `mvsep` 分节：MVSEP multisong 榜单快照（平台算法名、各声部 SDR、各排序视图名次、质量检查条目 URL）。
+
+加载机制与模型清单一致：默认读取仓库内 `rankings.json`（与 `models.json` 同目录兜底）；`--rankings-url <url>` / 配置 `models.rankings = { url = "..." }` 拉取远程文件；`--rankings-file <path>` / `{ path = "..." }` 指定本地文件。排名文件可选——缺失时一切照常（社区展示与排序自动降级为空）。
 
 ## 网络与代理
 

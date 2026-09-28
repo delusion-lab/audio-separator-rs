@@ -150,10 +150,10 @@ pub struct MvsepEntry {
     pub add_opts: serde_json::Value,
 }
 
-/// 模型排名/推荐分数（多源数据，可选）。
+/// 模型评分（可选，来源标注在 `sources` 中）。
 ///
-/// 数据来源标注在 `sources` 中；当前已接入 musdb18-hq 中位 SDR，
-/// 以及 deton24 community guide 维护的社区推荐排名（`community_rank`）。
+/// 当前接入 musdb18-hq 中位 SDR；社区推荐/平台排名已拆至独立的排名文件
+/// （[`crate::rankings::RankingsList`]，本地 JSON 或 URL），通过 `name` 关联。
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ModelScores {
     /// MUSDB18-HQ vocals 中位 SDR（dB），主排名指标。
@@ -162,43 +162,9 @@ pub struct ModelScores {
     /// MUSDB18-HQ instrumental 中位 SDR（dB）。
     #[serde(default)]
     pub musdb_sdr_instrumental: Option<f64>,
-    /// 社区指南推荐排名（deton24 community guide 维护），含用途分类与评测指标。
-    #[serde(default)]
-    pub community_rank: Option<CommunityRank>,
     /// 数据来源标注，如 ["musdb18hq", "python-audio-separator/models-scores.json"]。
     #[serde(default)]
     pub sources: Vec<String>,
-}
-
-/// 社区指南推荐排名（deton24 community guide 维护）。
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct CommunityRank {
-    /// 在该用途分类中的推荐序号（从 1 开始）。
-    #[serde(default)]
-    pub rank: Option<u32>,
-    /// 用途分类，如 "2 stems > instrumentals"、"drums"、"4-6 stems"。
-    #[serde(default)]
-    pub category: Option<String>,
-    /// 社区评测指标（可选）。
-    #[serde(default)]
-    pub metrics: Option<CommunityMetrics>,
-    /// 数据来源标识。
-    #[serde(default)]
-    pub source: Option<String>,
-    /// 模型下载链接或文档链接。
-    #[serde(default)]
-    pub url: Option<String>,
-}
-
-/// 社区评测指标。
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct CommunityMetrics {
-    #[serde(default)]
-    pub sdr: Option<f64>,
-    #[serde(default)]
-    pub fullness: Option<f64>,
-    #[serde(default)]
-    pub bleedless: Option<f64>,
 }
 
 /// 模型清单：本地 JSON 文件或远程 URL 均可，条目集中维护。

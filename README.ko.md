@@ -117,11 +117,17 @@ asep models --sort sdr --top 10
 # 커뮤니티 추천 순으로 랭킹(deton24 가이드, 오름차순; 카테고리+순위 표시)
 asep models --sort community
 
-# 단일 모델 상세 조회(점수가 있으면 함께 표시)
+# 단일 모델 상세 조회(SDR 점수와 랭킹 정보가 있으면 함께 표시)
 asep model-info model_bs_roformer_ep_368_sdr_12.9628
+
+# 랭킹 데이터는 별도 파일(rankings.json)에 있습니다. 직접 확인:
+asep rankings                            # 커뮤니티 가이드 섹션, 카테고리+순위로 그룹화
+asep rankings --section mvsep            # MVSEP multisong 리더보드 스냅샷(instrum 순위)
+asep rankings --section mvsep --view vocals --top 10
+asep rankings --section community --sort sdr
 ```
 
-점수는 세 가지 소스에서 가져옵니다: python-audio-separator 벤치마크(MUSDB18-HQ 중앙값 SDR), deton24 UVR-MDX-Demucs-GSEP 커뮤니티 가이드(카테고리 순위 + fullness/bleedless/SDR 지표), MVSEP 플랫폼 카탈로그. SDR 정렬 시 점수가 없는 모델은 마지막에 배치됩니다. 커뮤니티 정렬 시 커뮤니티 추천이 없는 모델은 마지막에 배치됩니다. mdx / bs_roformer / mel_band_roformer / bs_polarformer 이외의 아키텍처는 MVSEP 클라우드 백엔드용으로 등록되어 있으며 로컬에서 실행할 수 없습니다.
+점수와 랭킹은 세 가지 소스에서 가져옵니다: python-audio-separator 벤치마크(MUSDB18-HQ 중앙값 SDR, `models.json`에 유지), deton24 UVR-MDX-Demucs-GSEP 커뮤니티 가이드(카테고리 순위 + fullness/bleedless/SDR 지표), MVSEP multisong 리더보드 스냅샷(스템별 SDR). 후자 둘은 독립적인 `rankings.json`에 저장됩니다(아래 참조). SDR 정렬 시 점수가 없는 모델은 마지막에 배치됩니다. 커뮤니티 정렬 시 커뮤니티 추천이 없는 모델은 마지막에 배치됩니다. mdx / bs_roformer / mel_band_roformer / bs_polarformer 이외의 아키텍처는 MVSEP 클라우드 백엔드용으로 등록되어 있으며 로컬에서 실행할 수 없습니다.
 
 ### 서버
 
@@ -142,6 +148,7 @@ REST 엔드포인트:
 | GET | `/api/v1/tasks/{id}/download?stem=` | 스템 결과 다운로드 |
 | DELETE | `/api/v1/tasks/{id}` | 실행 중 작업 취소 / 종료 작업 정리 |
 | GET | `/api/v1/models?backend=local\|mvsep` | 모델 목록 / MVSEP 알고리즘 카탈로그 |
+| GET | `/api/v1/rankings` | 랭킹 데이터(커뮤니티 가이드 / MVSEP 리더보드 스냅샷) |
 | GET | `/api/v1/health` | 헬스 체크 |
 
 업로드 예시:
@@ -177,6 +184,15 @@ curl -F "audio=@input.wav" -F "model=model_bs_polarformer_float16" \
 **models.json 완전 우회**: `--model <URL|로컬 경로> --config-url <URL|로컬 경로>`(CLI) 또는 multipart `config_url` 필드(서버)
 로 가중치와 파라미터 파일을 매니페스트 등록 없이 직접 지정할 수 있습니다. 이름으로 참조할 때 `config_url`은 매니페스트 엔트리의 동일 설정을 덮어씁니다.
 서버 `POST /api/v1/separate`의 `config_url` 필드도 동일하게 적용됩니다.
+
+## 랭킹 데이터(rankings.json)
+
+랭킹/추천 데이터는 모델 목록과 분리하여 관리합니다. 그 소스(커뮤니티 가이드, MVSEP 리더보드)가 카탈로그와 독립적으로 갱신되기 때문입니다:
+
+- `community` 섹션: deton24 UVR-MDX-Demucs-GSEP 커뮤니티 가이드 항목(`name`은 모델 목록과 일치, rank / category / metrics / source / url 포함);
+- `mvsep` 섹션: MVSEP multisong 리더보드 스냅샷(플랫폼 알고리즘 이름, 스템별 SDR, 각 정렬 뷰의 순위, 품질 검사 항목 URL).
+
+로딩 방식은 모델 목록과 동일합니다: 기본적으로 리포지토리 내 `rankings.json`을 읽음(`models.json`과 같은 디렉터리 폴백); `--rankings-url <url>` / 설정 `models.rankings = { url = "..." }`로 원격 파일 가져오기; `--rankings-file <path>` / `{ path = "..." }`로 로컬 파일 지정. 랭킹 파일은 선택 사항입니다——없어도 모두 정상 동작합니다(커뮤니티 표시와 정렬은 빈 값으로 폴백).
 
 ## 네트워크와 프록시
 

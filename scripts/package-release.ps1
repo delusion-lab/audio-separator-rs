@@ -33,6 +33,8 @@ try {
     }
     # models.json: default local model list, bundled so the release works offline.
     if (Test-Path "$root\models.json") { Copy-Item "$root\models.json" $pkg }
+    # rankings.json: community guide / MVSEP leaderboard ranking data (optional, bundled with release).
+    if (Test-Path "$root\rankings.json") { Copy-Item "$root\rankings.json" $pkg }
     Copy-Item "$root\README.md" $pkg
     Copy-Item "$root\README.zh-CN.md" $pkg
     Copy-Item "$root\README.ja.md" $pkg

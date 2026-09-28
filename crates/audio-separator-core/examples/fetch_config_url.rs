@@ -10,6 +10,7 @@ fn main() {
     let cfg = ModelsConfig {
         list: Some(ModelListSource::Path("models.json".into())),
         cache_dir: None,
+            rankings: None,
     };
     let mgr = ModelManager::load(&cfg, None).unwrap();
     let names = [

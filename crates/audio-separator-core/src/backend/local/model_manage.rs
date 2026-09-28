@@ -15,6 +15,7 @@ use crate::config::{ModelListSource, ModelsConfig};
 use crate::error::{Error, Result};
 use crate::job::ProgressEvent;
 use crate::model::{ModelEntry, ModelList, ModelRef};
+use crate::rankings::RankingsList;
 
 /// 解析完成的模型：本地文件路径 + 架构 + 可选的清单条目。
 #[derive(Debug, Clone)]
@@ -35,6 +36,7 @@ pub struct ResolvedModel {
 /// 创建/丢弃会 panic）。下载与清单获取均在阻塞线程内临时创建 Client，使用即弃。
 pub struct ModelManager {
     list: ModelList,
+    rankings: RankingsList,
     cache_dir: PathBuf,
     proxy: Option<String>,
 }
@@ -92,8 +94,15 @@ impl ModelManager {
                 models: Vec::new(),
             },
         };
+        // 排名数据源：本地 JSON 或 URL；未配置时为空（展示/排序降级为空）。
+        let rankings = match &models.rankings {
+            Some(ModelListSource::Url(url)) => fetch_json(url, proxy)?,
+            Some(ModelListSource::Path(p)) => load_json_file(p)?,
+            None => RankingsList::default(),
+        };
         Ok(Self {
             list,
+            rankings,
             cache_dir,
             proxy: proxy.map(|s| s.to_string()),
         })
@@ -102,6 +111,11 @@ impl ModelManager {
     /// 当前加载的模型清单（查询用）。
     pub fn list(&self) -> &ModelList {
         &self.list
+    }
+
+    /// 当前加载的排名数据（查询用；未配置排名源时为空）。
+    pub fn rankings(&self) -> &RankingsList {
+        &self.rankings
     }
 
     /// 解析模型引用到本地文件与架构（同步执行；供 `spawn_blocking` 上下文调用）。
@@ -308,8 +322,8 @@ impl ModelManager {
     }
 }
 
-/// 从远程 URL 获取模型清单（临时 blocking Client，走代理）。
-fn fetch_json(url: &str, proxy: Option<&str>) -> Result<ModelList> {
+/// 从远程 URL 获取 JSON 数据（模型清单 / 排名文件，临时 blocking Client，走代理）。
+fn fetch_json<T: serde::de::DeserializeOwned>(url: &str, proxy: Option<&str>) -> Result<T> {
     let resp = blocking_client(proxy)?
         .get(url)
         .send()
@@ -355,8 +369,8 @@ pub(crate) fn resolve_proxy(explicit: Option<&str>) -> Option<String> {
     None
 }
 
-/// 从本地 JSON 文件加载模型清单。
-fn load_json_file(path: &Path) -> Result<ModelList> {
+/// 从本地 JSON 文件加载数据（模型清单 / 排名文件）。
+fn load_json_file<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
     let text = std::fs::read_to_string(path)?;
     serde_json::from_str(&text).map_err(Error::Json)
 }
@@ -429,6 +443,7 @@ mod tests {
             &ModelsConfig {
                 list: None,
                 cache_dir: Some(cache.to_path_buf()),
+            rankings: None,
             },
             None,
         )
@@ -509,6 +524,7 @@ batch_size: 1
         let mgr = ModelManager::load(
             &ModelsConfig {
                 list: Some(ModelListSource::Path(manifest)),
+                rankings: None,
                 cache_dir: Some(d.join("cache")),
             },
             None,

@@ -485,24 +485,7 @@
       "mvsep": {
         "sep_type": 40
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 4,
-          "category": "2 stems > instrumentals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/pcunwa/BS-Roformer-Resurrection/resolve/main/BS-Roformer-Resurrection-Inst.ckpt",
-          "metrics": {
-            "fullness": 34.93,
-            "bleedless": 40.14,
-            "sdr": 17.25
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "bs_roformer_karaoke_anvuew",
@@ -597,24 +580,7 @@
       "mvsep": {
         "sep_type": 40
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 5,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/pcunwa/BS-Roformer-Resurrection/resolve/main/BS-Roformer-Resurrection.ckpt",
-          "metrics": {
-            "fullness": 15.14,
-            "bleedless": 39.99,
-            "sdr": 11.34
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "bs_roformer_vocals_revive_unwa",
@@ -632,24 +598,7 @@
       "mvsep": {
         "sep_type": 40
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 30,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/pcunwa/BS-Roformer-Revive/resolve/main/bs_roformer_revive.ckpt",
-          "metrics": {
-            "fullness": 15.48,
-            "bleedless": 38.8,
-            "sdr": 11.03
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "bs_roformer_vocals_revive_v2_unwa",
@@ -667,23 +616,7 @@
       "mvsep": {
         "sep_type": 40
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 6,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/pcunwa/BS-Roformer-Revive/resolve/main/bs_roformer_revive2.ckpt",
-          "metrics": {
-            "fullness": 15.13,
-            "sdr": 10.97
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "bs_roformer_vocals_revive_v3e_unwa",
@@ -701,24 +634,7 @@
       "mvsep": {
         "sep_type": 40
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 15,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/pcunwa/BS-Roformer-Revive/blob/main/bs_roformer_revive3e.ckpt",
-          "metrics": {
-            "fullness": 21.43,
-            "bleedless": 30.51,
-            "sdr": 10.98
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "denoise_mel_band_roformer_aufr33_aggr_sdr_27.9768",
@@ -832,19 +748,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 4,
-          "category": "de-breath",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "dereverb_mel_band_roformer_less_aggressive_anvuew_sdr_18.8050",
@@ -862,22 +766,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 6,
-          "category": "de-reverb",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_less_aggressive_anvuew_sdr_18.8050.ckpt?download=true",
-          "metrics": {
-            "sdr": 18.81
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "dereverb_mel_band_roformer_mono_anvuew",
@@ -926,19 +815,7 @@
       "mvsep": {
         "sep_type": 40
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 13,
-          "category": "de-reverb",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/anvuew/deverb_bs_roformer/blob/main/deverb_bs_roformer_8_384dim_10depth.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "hdemucs_mmi",
@@ -1244,19 +1121,7 @@
       "mvsep": {
         "sep_type": 25
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 1,
-          "category": "drumsep",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mdx23c/mdx23c_drumsep_5stem_aufr33_jarredou.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "MDX23C_D1581",
@@ -1300,19 +1165,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 1,
-          "category": "debleeding",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/jarredou/bleed_suppressor_melband_rofo_by_unwa_97chris/resolve/main/bleed_suppressor_v1.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_crowd_aufr33_viperx_sdr_8.7144",
@@ -1330,19 +1183,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 3,
-          "category": "de-crowd",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v.1.0.4/mel_band_roformer_crowd_aufr33_viperx_sdr_8.7144.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_denoise_debleed_gabox",
@@ -1363,16 +1204,9 @@
       "scores": {
         "musdb_sdr": -0.00191,
         "musdb_sdr_instrumental": 5.75723,
-        "community_rank": {
-          "rank": 8,
-          "category": "debleeding",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/denoisedebleed.ckpt"
-        },
         "sources": [
           "musdb18hq",
-          "python-audio-separator/models-scores.json",
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
+          "python-audio-separator/models-scores.json"
         ]
       }
     },
@@ -1429,21 +1263,9 @@
       "scores": {
         "musdb_sdr": 10.7513,
         "musdb_sdr_instrumental": 15.3618,
-        "community_rank": {
-          "rank": 11,
-          "category": "2 stems > instrumentals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/becruily/mel-band-roformer-instrumental/tree/main",
-          "metrics": {
-            "fullness": 33.98,
-            "bleedless": 40.48,
-            "sdr": 16.47
-          }
-        },
         "sources": [
           "musdb18hq",
-          "python-audio-separator/models-scores.json",
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
+          "python-audio-separator/models-scores.json"
         ]
       }
     },
@@ -1616,24 +1438,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 9,
-          "category": "2 stems > instrumentals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/Inst_GaboxFv8.ckpt",
-          "metrics": {
-            "fullness": 33.21,
-            "bleedless": 40.73,
-            "sdr": 16.57
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_instrumental_fv8b_gabox",
@@ -1651,24 +1456,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 13,
-          "category": "2 stems > instrumentals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Inst_FV8b.ckpt",
-          "metrics": {
-            "fullness": 35.05,
-            "bleedless": 36.9,
-            "sdr": 16.59
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_instrumental_fvx_gabox",
@@ -1686,24 +1474,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 4,
-          "category": "2 stems > instrumentals > special purpose",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/Inst_GaboxFVX.ckpt",
-          "metrics": {
-            "fullness": 38.25,
-            "bleedless": 35.35,
-            "sdr": 16.49
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_instrumental_gabox",
@@ -1877,16 +1648,9 @@
       "scores": {
         "musdb_sdr": 8.44766,
         "musdb_sdr_instrumental": 14.6545,
-        "community_rank": {
-          "rank": 6,
-          "category": "karaoke > ensembles",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_karaoke_aufr33_viperx_sdr_10.1956.ckpt"
-        },
         "sources": [
           "musdb18hq",
-          "python-audio-separator/models-scores.json",
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
+          "python-audio-separator/models-scores.json"
         ]
       }
     },
@@ -1926,16 +1690,9 @@
       "scores": {
         "musdb_sdr": 8.68991,
         "musdb_sdr_instrumental": 16.3727,
-        "community_rank": {
-          "rank": 7,
-          "category": "karaoke > ensembles",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/experimental/kar_gabox.ckpt"
-        },
         "sources": [
           "musdb18hq",
-          "python-audio-separator/models-scores.json",
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
+          "python-audio-separator/models-scores.json"
         ]
       }
     },
@@ -1955,19 +1712,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 13,
-          "category": "karaoke > ensembles",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Karaoke_GaboxV2.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_kim_ft2_bleedless_unwa",
@@ -2062,23 +1807,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 28,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/Aname-Tommy/MelBandRoformers/blob/main/FullnessVocalModel.ckpt",
-          "metrics": {
-            "fullness": 18.83,
-            "bleedless": 32.98
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_vocals_becruily",
@@ -2164,24 +1893,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 20,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_fv4.ckpt",
-          "metrics": {
-            "fullness": 21.33,
-            "bleedless": 29.07,
-            "sdr": 10.58
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_vocals_fv5_gabox",
@@ -2199,24 +1911,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 22,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_fv5.ckpt",
-          "metrics": {
-            "fullness": 20.67,
-            "bleedless": 29.5,
-            "sdr": 10.56
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_vocals_fv6_gabox",
@@ -2234,23 +1929,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 16,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_fv6.ckpt",
-          "metrics": {
-            "bleedless": 26.61,
-            "sdr": 10.64
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "mel_band_roformer_vocals_fv7b_gabox",
@@ -2371,19 +2050,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 33,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/pcunwa/Mel-Band-Roformer-big/resolve/main/big_beta6.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "melband_roformer_big_beta6x",
@@ -2401,23 +2068,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 11,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/pcunwa/Mel-Band-Roformer-big/resolve/main/big_beta6x.ckpt",
-          "metrics": {
-            "bleedless": 35.16,
-            "sdr": 11.12
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "melband_roformer_inst_v1",
@@ -2504,24 +2155,7 @@
       "mvsep": {
         "sep_type": 48
       },
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 5,
-          "category": "2 stems > instrumentals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/blob/main/inst_v1e_plus.ckpt",
-          "metrics": {
-            "fullness": 37.89,
-            "bleedless": 36.53,
-            "sdr": 16.65
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      }
+      "scores": null
     },
     {
       "name": "melband_roformer_inst_v2",
@@ -3705,24 +3339,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 7,
-          "category": "2 stems > instrumentals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/inst_gaboxFlowersV10.ckpt",
-          "metrics": {
-            "fullness": 37.12,
-            "bleedless": 36.68,
-            "sdr": 16.95
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/inst_gaboxFlowersV10.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/v10.yaml"
     },
@@ -3737,24 +3354,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 8,
-          "category": "2 stems > instrumentals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/Inst_GaboxFv9.ckpt",
-          "metrics": {
-            "fullness": 37.19,
-            "bleedless": 36.2,
-            "sdr": 16.56
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/Inst_GaboxFv9.ckpt"
     },
     {
@@ -3768,19 +3368,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 10,
-          "category": "2 stems > instrumentals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Inst_Fv8.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Inst_Fv8.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/inst_gabox.yaml"
     },
@@ -3795,24 +3383,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 12,
-          "category": "2 stems > instrumentals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/inst_Fv4.ckpt",
-          "metrics": {
-            "fullness": 39.4,
-            "bleedless": 33.49,
-            "sdr": 16.44
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/inst_Fv4.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/inst_gabox.yaml"
     },
@@ -3827,23 +3398,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 1,
-          "category": "2 stems > instrumentals > recent bleedless",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/inst_fv7b.ckpt",
-          "metrics": {
-            "fullness": 27.07,
-            "sdr": 16.71
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/inst_fv7b.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/inst_gabox.yaml"
     },
@@ -3858,24 +3413,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 3,
-          "category": "2 stems > instrumentals > special purpose",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/natanworkspace/melband_roformer/blob/main/Neo_InstVFX.ckpt",
-          "metrics": {
-            "fullness": 39.88,
-            "bleedless": 32.56,
-            "sdr": 14.35
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/natanworkspace/melband_roformer/blob/main/Neo_InstVFX.ckpt",
       "config_url": "https://huggingface.co/natanworkspace/melband_roformer/blob/main/config_neo_inst.yaml"
     },
@@ -3890,23 +3428,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 5,
-          "category": "2 stems > instrumentals > special purpose",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/intrumental_gabox.ckpt",
-          "metrics": {
-            "fullness": 37.07,
-            "bleedless": 37.4
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/intrumental_gabox.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/inst_gabox.yaml"
     },
@@ -3921,19 +3443,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 2,
-          "category": "2 stems > instrumentals > older archs",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/small_inst.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/small_inst.ckpt",
       "config_url": "https://huggingface.co/pcunwa/Mel-Band-Roformer-small/resolve/main/config_melbandroformer_small.yaml"
     },
@@ -3948,24 +3458,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 7,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/anvuew/BS-RoFormer/blob/main/bs_roformer_ft1_anvuew_sdr_12.55.ckpt",
-          "metrics": {
-            "fullness": 19.88,
-            "bleedless": 35.17,
-            "sdr": 11.54
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/anvuew/BS-RoFormer/blob/main/bs_roformer_ft1_anvuew_sdr_12.55.ckpt",
       "config_url": "https://huggingface.co/anvuew/BS-RoFormer/blob/main/config.yaml"
     },
@@ -3980,24 +3473,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 10,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_fv7.ckpt",
-          "metrics": {
-            "fullness": 17.99,
-            "bleedless": 33.85,
-            "sdr": 11.16
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_fv7.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/v7.yaml"
     },
@@ -4012,24 +3488,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 17,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/vocfv7beta2.ckpt",
-          "metrics": {
-            "fullness": 20.44,
-            "bleedless": 31.55,
-            "sdr": 10.87
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/vocfv7beta2.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_gabox.yaml"
     },
@@ -4044,24 +3503,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 18,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/vocfv7beta3.ckpt",
-          "metrics": {
-            "fullness": 21.82,
-            "bleedless": 30.83,
-            "sdr": 10.8
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/vocfv7beta3.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_gabox.yaml"
     },
@@ -4076,24 +3518,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 19,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/vocfv7beta1.ckpt",
-          "metrics": {
-            "fullness": 21.21,
-            "bleedless": 30.81,
-            "sdr": 10.96
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/vocfv7beta1.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_gabox.yaml"
     },
@@ -4108,19 +3533,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 24,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_pope_instvoc_aname.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_pope_instvoc_aname.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_pope_instvoc_aname_config.yaml"
     },
@@ -4135,19 +3548,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 25,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/BS-Roformer-MVSep-Mega-53-stems/blob/main/v1/bs_mega_53stem_vocal_mvsep.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/BS-Roformer-MVSep-Mega-53-stems/blob/main/v1/bs_mega_53stem_vocal_mvsep.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/BS-Roformer-MVSep-Mega-53-stems/blob/main/v1/bs_mega_53stem_vocal_mvsep_config.yaml"
     },
@@ -4162,24 +3563,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 26,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_gabox2.ckpt",
-          "metrics": {
-            "fullness": 18.98,
-            "bleedless": 33.13,
-            "sdr": 10.98
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_gabox2.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_gabox.yaml"
     },
@@ -4194,24 +3578,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 32,
-          "category": "2 stems > vocals",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/blob/main/kimmel_unwa_ft3_prev.ckpt",
-          "metrics": {
-            "fullness": 16.8,
-            "bleedless": 36.11,
-            "sdr": 11.05
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/blob/main/kimmel_unwa_ft3_prev.ckpt",
       "config_url": "https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/resolve/main/config_kimmel_unwa_ft.yaml"
     },
@@ -4226,24 +3593,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 7,
-          "category": "2 stems > vocals > fast inference",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/KimberleyJSN/melbandroformer/resolve/main/MelBandRoformer.ckpt?download=true",
-          "metrics": {
-            "fullness": 16.26,
-            "bleedless": 36.75,
-            "sdr": 11.07
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/KimberleyJSN/melbandroformer/resolve/main/MelBandRoformer.ckpt?download=true"
     },
     {
@@ -4257,19 +3607,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 9,
-          "category": "2 stems > vocals > fast inference",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_vocals_large1_unwa.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_vocals_large1_unwa.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_vocals_large1_unwa_config.yaml"
     },
@@ -4284,22 +3622,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 10,
-          "category": "2 stems > vocals > fast inference",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_vocals_1297_viperx.ckpt",
-          "metrics": {
-            "sdr": 17.17
-          }
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_vocals_1297_viperx.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_vocals_1297_viperx_config.yaml"
     },
@@ -4314,19 +3637,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 11,
-          "category": "2 stems > vocals > fast inference",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_vocals_1296_viperx.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_vocals_1296_viperx.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_vocals_1296_viperx_config.yaml"
     },
@@ -4341,19 +3652,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 2,
-          "category": "speech",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_karaoke_3stem_giantailab.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_karaoke_3stem_giantailab.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_karaoke_3stem_giantailab_config.yaml"
     },
@@ -4369,19 +3668,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 1,
-          "category": "karaoke",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/karaoke/small_karaoke_gaboxaufr.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/karaoke/small_karaoke_gaboxaufr.ckpt",
       "config_url": "https://huggingface.co/pcunwa/Mel-Band-Roformer-small/blob/main/config_melbandroformer_small.yaml"
     },
@@ -4397,19 +3684,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 3,
-          "category": "karaoke",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/gilliaan/Stem-Separation-Models/blob/main/Karaoke/MelBandRoformer/gilliaan_melroformer_karaoke_v1.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/gilliaan/Stem-Separation-Models/blob/main/Karaoke/MelBandRoformer/gilliaan_melroformer_karaoke_v1.ckpt",
       "config_url": "https://huggingface.co/gilliaan/Stem-Separation-Models/blob/main/Karaoke/MelBandRoformer/gilliaan_melroformer_karaoke_v1.yaml"
     },
@@ -4425,19 +3700,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 4,
-          "category": "karaoke",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/gilliaan/Stem-Separation-Models/resolve/main/DeEffect/BandSplitRoformer/gilliaan_bsroformer_deeffect_v1beta.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/gilliaan/Stem-Separation-Models/resolve/main/DeEffect/BandSplitRoformer/gilliaan_bsroformer_deeffect_v1beta.ckpt",
       "config_url": "https://huggingface.co/gilliaan/Stem-Separation-Models/resolve/main/DeEffect/BandSplitRoformer/gilliaan_bsroformer_deeffect_v1beta.yaml"
     },
@@ -4453,19 +3716,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 4,
-          "category": "karaoke > ensembles",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/Gonzaluigi/Mel-Band-Karaoke-Fusion/resolve/main/mel_band_karaoke_fusion_standard.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/Gonzaluigi/Mel-Band-Karaoke-Fusion/resolve/main/mel_band_karaoke_fusion_standard.ckpt",
       "config_url": "https://huggingface.co/Gonzaluigi/Mel-Band-Karaoke-Fusion/resolve/main/melband_karaokefusion_gonza.yaml"
     },
@@ -4480,19 +3731,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 2,
-          "category": "lead vocals extractor",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/Lambda001/BandSplitPolarFormers/blob/main/BS-PF-SV_V2.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/Lambda001/BandSplitPolarFormers/blob/main/BS-PF-SV_V2.ckpt",
       "config_url": "https://huggingface.co/Lambda001/BandSplitPolarFormers/blob/main/BS-PF-SV_V2.yaml"
     },
@@ -4507,19 +3746,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 3,
-          "category": "harmonies",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/blob/main/dereverb_echo_mbr_fused_0.5_v2_0.25_big_0.25_super.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/blob/main/dereverb_echo_mbr_fused_0.5_v2_0.25_big_0.25_super.ckpt",
       "config_url": "https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/blob/main/config_dereverb_echo_mbr_v2.yaml"
     },
@@ -4536,19 +3763,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 2,
-          "category": "4-6 stems",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_6stem_fixed.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_6stem_fixed.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_6stem_fixed_config.yaml"
     },
@@ -4563,19 +3778,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 1,
-          "category": "drums",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_drums_gilliaaan.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_drums_gilliaaan.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_drums_gilliaaan_config.yaml"
     },
@@ -4590,19 +3793,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 2,
-          "category": "strings",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/gilliaan/Stem-Separation-Models/resolve/main/BowedStrings/BandSplitRoformer/gilliaan_bsroformer_bowedstrings_v2.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/gilliaan/Stem-Separation-Models/resolve/main/BowedStrings/BandSplitRoformer/gilliaan_bsroformer_bowedstrings_v2.ckpt",
       "config_url": "https://huggingface.co/gilliaan/Stem-Separation-Models/resolve/main/BowedStrings/BandSplitRoformer/gilliaan_bsroformer_bowedstrings_v2.yaml"
     },
@@ -4617,19 +3808,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 3,
-          "category": "strings",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_bowed_str_gilliaaan.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_bowed_str_gilliaaan.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_bowed_str_gilliaaan_config.yaml"
     },
@@ -4644,19 +3823,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 2,
-          "category": "electric guitar",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/becruily/mel-band-roformer-guitar/resolve/main/becruily_guitar.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/becruily/mel-band-roformer-guitar/resolve/main/becruily_guitar.ckpt",
       "config_url": "https://huggingface.co/becruily/mel-band-roformer-guitar/resolve/main/config_guitar_becruily.yaml"
     },
@@ -4671,19 +3838,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 1,
-          "category": "de-crowd",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR-MDX-NET_Crowd_HQ_1.onnx"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR-MDX-NET_Crowd_HQ_1.onnx"
     },
     {
@@ -4697,19 +3852,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 4,
-          "category": "sfx",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/jazzpear/audio_separation_models_trained_by_jazzpear/blob/main/sound_effects/mdx23c/model_sfxsplitter.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/jazzpear/audio_separation_models_trained_by_jazzpear/blob/main/sound_effects/mdx23c/model_sfxsplitter.ckpt",
       "config_url": "https://huggingface.co/jazzpear/audio_separation_models_trained_by_jazzpear/blob/main/sound_effects/mdx23c/config_sfxsplitter.yaml"
     },
@@ -4724,19 +3867,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 6,
-          "category": "sfx",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mdx23c/mdx23c_sfx_jasper.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mdx23c/mdx23c_sfx_jasper.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mdx23c/mdx23c_sfx_jasper_config.yaml"
     },
@@ -4751,19 +3882,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 3,
-          "category": "de-reverb",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Lead_VocalDereverb.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Lead_VocalDereverb.ckpt",
       "config_url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/karaoke/karaokegabox_1750911344.yaml"
     },
@@ -4778,19 +3897,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 4,
-          "category": "de-reverb",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt",
       "config_url": "https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew.yaml"
     },
@@ -4805,19 +3912,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 10,
-          "category": "de-reverb",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://a19p.uvronline.app/public/dereverb_mdx23c_sdr_6.9096.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://a19p.uvronline.app/public/dereverb_mdx23c_sdr_6.9096.ckpt"
     },
     {
@@ -4831,19 +3926,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 12,
-          "category": "de-reverb",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/anvuew/dereverb_bs_roformer/blob/main/archive/deverb_bs_roformer_8_256dim_8depth.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/anvuew/dereverb_bs_roformer/blob/main/archive/deverb_bs_roformer_8_256dim_8depth.ckpt",
       "config_url": "https://huggingface.co/anvuew/dereverb_bs_roformer/blob/main/archive/deverb_bs_roformer_8_256dim_8depth.yaml"
     },
@@ -4858,19 +3941,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 4,
-          "category": "de-noising",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mel_band_roformer/mbr_denoise_yuluoye.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mel_band_roformer/mbr_denoise_yuluoye.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mel_band_roformer/mbr_denoise_yuluoye_config.yaml"
     },
@@ -4885,19 +3956,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 5,
-          "category": "de-noising",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/mel_band_roformer/mbr_denoise_children_phaedrus33.ckpt"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/mel_band_roformer/mbr_denoise_children_phaedrus33.ckpt",
       "config_url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/mel_band_roformer/mbr_denoise_children_phaedrus33_config.yaml"
     },
@@ -4912,19 +3971,7 @@
       ],
       "license": "MIT (community)",
       "params": {},
-      "scores": {
-        "musdb_sdr": null,
-        "musdb_sdr_instrumental": null,
-        "community_rank": {
-          "rank": 8,
-          "category": "de-noising",
-          "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
-          "url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR-DeNoise.pth"
-        },
-        "sources": [
-          "deton24 community guide (UVR-MDX-Demucs-GSEP)"
-        ]
-      },
+      "scores": null,
       "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR-DeNoise.pth"
     }
   ]

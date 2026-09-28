@@ -28,6 +28,8 @@ pub struct AppState {
     pub store: Arc<dyn TaskStore>,
     /// 本地清单（启动时加载；`/models?backend=local` 直接返回）。
     pub local_manifest: audio_separator_core::model::ModelList,
+    /// 本地排名数据（启动时加载；`/rankings` 直接返回）。
+    pub local_rankings: audio_separator_core::rankings::RankingsList,
     /// MVSEP 客户端（算法目录查询用；无需 API Key）。
     pub mvsep_client: Option<audio_separator_core::backend::mvsep::MvsepClient>,
     /// 上传根目录。
@@ -334,6 +336,11 @@ pub async fn models(
     }
 }
 
+/// GET /api/v1/rankings —— 排名数据（community / mvsep 快照）。
+pub async fn rankings(State(st): State<Arc<AppState>>) -> ApiResult {
+    Ok(Json(json!(st.local_rankings)).into_response())
+}
+
 /// GET /api/v1/health —— 健康检查。
 pub async fn health(State(st): State<Arc<AppState>>) -> Response {
     Json(json!({
@@ -452,6 +459,7 @@ pub fn build_router(state: Arc<AppState>) -> Router {
         .route("/api/v1/tasks/{id}/download", get(download))
         .route("/api/v1/tasks/{id}", delete(cancel))
         .route("/api/v1/models", get(models))
+        .route("/api/v1/rankings", get(rankings))
         .route("/api/v1/health", get(health))
         .layer(axum::middleware::from_fn_with_state(Arc::clone(&state), auth))
         .with_state(state)
@@ -475,6 +483,7 @@ mod tests {
                 version: 0,
                 models: Vec::new(),
             },
+            local_rankings: audio_separator_core::rankings::RankingsList::default(),
             mvsep_client: None,
             upload_dir: std::env::temp_dir(),
             started: Instant::now(),
@@ -503,6 +512,21 @@ mod tests {
             .oneshot(
                 Request::builder()
                     .uri("/api/v1/models?backend=local")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn rankings_ok_without_auth() {
+        let app = build_router(test_state(None));
+        let res = app
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/rankings")
                     .body(Body::empty())
                     .unwrap(),
             )

@@ -1,0 +1,1445 @@
+{
+  "version": 1,
+  "community": [
+    {
+      "name": "bs_roformer_instrumental_resurrection_unwa",
+      "rank": 4,
+      "category": "2 stems > instrumentals",
+      "metrics": {
+        "fullness": 34.93,
+        "bleedless": 40.14,
+        "sdr": 17.25
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/pcunwa/BS-Roformer-Resurrection/resolve/main/BS-Roformer-Resurrection-Inst.ckpt"
+    },
+    {
+      "name": "bs_roformer_vocals_resurrection_unwa",
+      "rank": 5,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 15.14,
+        "bleedless": 39.99,
+        "sdr": 11.34
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/pcunwa/BS-Roformer-Resurrection/resolve/main/BS-Roformer-Resurrection.ckpt"
+    },
+    {
+      "name": "bs_roformer_vocals_revive_unwa",
+      "rank": 30,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 15.48,
+        "bleedless": 38.8,
+        "sdr": 11.03
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/pcunwa/BS-Roformer-Revive/resolve/main/bs_roformer_revive.ckpt"
+    },
+    {
+      "name": "bs_roformer_vocals_revive_v2_unwa",
+      "rank": 6,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 15.13,
+        "sdr": 10.97
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/pcunwa/BS-Roformer-Revive/resolve/main/bs_roformer_revive2.ckpt"
+    },
+    {
+      "name": "bs_roformer_vocals_revive_v3e_unwa",
+      "rank": 15,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 21.43,
+        "bleedless": 30.51,
+        "sdr": 10.98
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/pcunwa/BS-Roformer-Revive/blob/main/bs_roformer_revive3e.ckpt"
+    },
+    {
+      "name": "dereverb_mel_band_roformer_anvuew_sdr_19.1729",
+      "rank": 4,
+      "category": "de-breath",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_anvuew_sdr_19.1729.ckpt"
+    },
+    {
+      "name": "dereverb_mel_band_roformer_less_aggressive_anvuew_sdr_18.8050",
+      "rank": 6,
+      "category": "de-reverb",
+      "metrics": {
+        "sdr": 18.81
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_less_aggressive_anvuew_sdr_18.8050.ckpt?download=true"
+    },
+    {
+      "name": "deverb_bs_roformer_8_384dim_10depth",
+      "rank": 13,
+      "category": "de-reverb",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/anvuew/deverb_bs_roformer/blob/main/deverb_bs_roformer_8_384dim_10depth.ckpt"
+    },
+    {
+      "name": "MDX23C-DrumSep-aufr33-jarredou",
+      "rank": 1,
+      "category": "drumsep",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mdx23c/mdx23c_drumsep_5stem_aufr33_jarredou.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_bleed_suppressor_v1",
+      "rank": 1,
+      "category": "debleeding",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/jarredou/bleed_suppressor_melband_rofo_by_unwa_97chris/resolve/main/bleed_suppressor_v1.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_crowd_aufr33_viperx_sdr_8.7144",
+      "rank": 3,
+      "category": "de-crowd",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v.1.0.4/mel_band_roformer_crowd_aufr33_viperx_sdr_8.7144.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_denoise_debleed_gabox",
+      "rank": 8,
+      "category": "debleeding",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/denoisedebleed.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_instrumental_becruily",
+      "rank": 11,
+      "category": "2 stems > instrumentals",
+      "metrics": {
+        "fullness": 33.98,
+        "bleedless": 40.48,
+        "sdr": 16.47
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/becruily/mel-band-roformer-instrumental/tree/main"
+    },
+    {
+      "name": "mel_band_roformer_instrumental_fv8_gabox",
+      "rank": 9,
+      "category": "2 stems > instrumentals",
+      "metrics": {
+        "fullness": 33.21,
+        "bleedless": 40.73,
+        "sdr": 16.57
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/Inst_GaboxFv8.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_instrumental_fv8b_gabox",
+      "rank": 13,
+      "category": "2 stems > instrumentals",
+      "metrics": {
+        "fullness": 35.05,
+        "bleedless": 36.9,
+        "sdr": 16.59
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Inst_FV8b.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_instrumental_fvx_gabox",
+      "rank": 4,
+      "category": "2 stems > instrumentals > special purpose",
+      "metrics": {
+        "fullness": 38.25,
+        "bleedless": 35.35,
+        "sdr": 16.49
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/Inst_GaboxFVX.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_karaoke_aufr33_viperx_sdr_10.1956",
+      "rank": 6,
+      "category": "karaoke > ensembles",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_karaoke_aufr33_viperx_sdr_10.1956.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_karaoke_gabox",
+      "rank": 7,
+      "category": "karaoke > ensembles",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/experimental/kar_gabox.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_karaoke_gabox_v2",
+      "rank": 13,
+      "category": "karaoke > ensembles",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Karaoke_GaboxV2.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_vocal_fullness_aname",
+      "rank": 28,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 18.83,
+        "bleedless": 32.98
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/Aname-Tommy/MelBandRoformers/blob/main/FullnessVocalModel.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_vocals_fv4_gabox",
+      "rank": 20,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 21.33,
+        "bleedless": 29.07,
+        "sdr": 10.58
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_fv4.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_vocals_fv5_gabox",
+      "rank": 22,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 20.67,
+        "bleedless": 29.5,
+        "sdr": 10.56
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/vocals/voc_fv5.ckpt"
+    },
+    {
+      "name": "mel_band_roformer_vocals_fv6_gabox",
+      "rank": 16,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "bleedless": 26.61,
+        "sdr": 10.64
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_fv6.ckpt"
+    },
+    {
+      "name": "melband_roformer_big_beta6",
+      "rank": 33,
+      "category": "2 stems > vocals",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/pcunwa/Mel-Band-Roformer-big/resolve/main/big_beta6.ckpt"
+    },
+    {
+      "name": "melband_roformer_big_beta6x",
+      "rank": 11,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "bleedless": 35.16,
+        "sdr": 11.12
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/pcunwa/Mel-Band-Roformer-big/resolve/main/big_beta6x.ckpt"
+    },
+    {
+      "name": "melband_roformer_inst_v1e_plus",
+      "rank": 5,
+      "category": "2 stems > instrumentals",
+      "metrics": {
+        "fullness": 37.89,
+        "bleedless": 36.53,
+        "sdr": 16.65
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/pcunwa/Mel-Band-Roformer-Inst/blob/main/inst_v1e_plus.ckpt"
+    },
+    {
+      "name": "inst_gaboxflowersv10",
+      "rank": 7,
+      "category": "2 stems > instrumentals",
+      "metrics": {
+        "fullness": 37.12,
+        "bleedless": 36.68,
+        "sdr": 16.95
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/inst_gaboxFlowersV10.ckpt"
+    },
+    {
+      "name": "inst_gaboxfv9",
+      "rank": 8,
+      "category": "2 stems > instrumentals",
+      "metrics": {
+        "fullness": 37.19,
+        "bleedless": 36.2,
+        "sdr": 16.56
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/Inst_GaboxFv9.ckpt"
+    },
+    {
+      "name": "inst_fv8",
+      "rank": 10,
+      "category": "2 stems > instrumentals",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Inst_Fv8.ckpt"
+    },
+    {
+      "name": "inst_fv4",
+      "rank": 12,
+      "category": "2 stems > instrumentals",
+      "metrics": {
+        "fullness": 39.4,
+        "bleedless": 33.49,
+        "sdr": 16.44
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/instrumental/inst_Fv4.ckpt"
+    },
+    {
+      "name": "inst_fv7b",
+      "rank": 1,
+      "category": "2 stems > instrumentals > recent bleedless",
+      "metrics": {
+        "fullness": 27.07,
+        "sdr": 16.71
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/inst_fv7b.ckpt"
+    },
+    {
+      "name": "neo_instvfx",
+      "rank": 3,
+      "category": "2 stems > instrumentals > special purpose",
+      "metrics": {
+        "fullness": 39.88,
+        "bleedless": 32.56,
+        "sdr": 14.35
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/natanworkspace/melband_roformer/blob/main/Neo_InstVFX.ckpt"
+    },
+    {
+      "name": "intrumental_gabox",
+      "rank": 5,
+      "category": "2 stems > instrumentals > special purpose",
+      "metrics": {
+        "fullness": 37.07,
+        "bleedless": 37.4
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/resolve/main/melbandroformers/instrumental/intrumental_gabox.ckpt"
+    },
+    {
+      "name": "small_inst",
+      "rank": 2,
+      "category": "2 stems > instrumentals > older archs",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/small_inst.ckpt"
+    },
+    {
+      "name": "bs_roformer_ft1_anvuew_sdr_12_55",
+      "rank": 7,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 19.88,
+        "bleedless": 35.17,
+        "sdr": 11.54
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/anvuew/BS-RoFormer/blob/main/bs_roformer_ft1_anvuew_sdr_12.55.ckpt"
+    },
+    {
+      "name": "voc_fv7",
+      "rank": 10,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 17.99,
+        "bleedless": 33.85,
+        "sdr": 11.16
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_fv7.ckpt"
+    },
+    {
+      "name": "vocfv7beta2",
+      "rank": 17,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 20.44,
+        "bleedless": 31.55,
+        "sdr": 10.87
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/vocfv7beta2.ckpt"
+    },
+    {
+      "name": "vocfv7beta3",
+      "rank": 18,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 21.82,
+        "bleedless": 30.83,
+        "sdr": 10.8
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/vocfv7beta3.ckpt"
+    },
+    {
+      "name": "vocfv7beta1",
+      "rank": 19,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 21.21,
+        "bleedless": 30.81,
+        "sdr": 10.96
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/vocfv7beta1.ckpt"
+    },
+    {
+      "name": "bs_pope_instvoc_aname",
+      "rank": 24,
+      "category": "2 stems > vocals",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_pope_instvoc_aname.ckpt"
+    },
+    {
+      "name": "bs_mega_53stem_vocal_mvsep",
+      "rank": 25,
+      "category": "2 stems > vocals",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/BS-Roformer-MVSep-Mega-53-stems/blob/main/v1/bs_mega_53stem_vocal_mvsep.ckpt"
+    },
+    {
+      "name": "voc_gabox2",
+      "rank": 26,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 18.98,
+        "bleedless": 33.13,
+        "sdr": 10.98
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/vocals/voc_gabox2.ckpt"
+    },
+    {
+      "name": "kimmel_unwa_ft3_prev",
+      "rank": 32,
+      "category": "2 stems > vocals",
+      "metrics": {
+        "fullness": 16.8,
+        "bleedless": 36.11,
+        "sdr": 11.05
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/pcunwa/Kim-Mel-Band-Roformer-FT/blob/main/kimmel_unwa_ft3_prev.ckpt"
+    },
+    {
+      "name": "melbandroformer",
+      "rank": 7,
+      "category": "2 stems > vocals > fast inference",
+      "metrics": {
+        "fullness": 16.26,
+        "bleedless": 36.75,
+        "sdr": 11.07
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/KimberleyJSN/melbandroformer/resolve/main/MelBandRoformer.ckpt?download=true"
+    },
+    {
+      "name": "bs_vocals_large1_unwa",
+      "rank": 9,
+      "category": "2 stems > vocals > fast inference",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_vocals_large1_unwa.ckpt"
+    },
+    {
+      "name": "bs_vocals_1297_viperx",
+      "rank": 10,
+      "category": "2 stems > vocals > fast inference",
+      "metrics": {
+        "sdr": 17.17
+      },
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_vocals_1297_viperx.ckpt"
+    },
+    {
+      "name": "bs_vocals_1296_viperx",
+      "rank": 11,
+      "category": "2 stems > vocals > fast inference",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_vocals_1296_viperx.ckpt"
+    },
+    {
+      "name": "bs_karaoke_3stem_giantailab",
+      "rank": 2,
+      "category": "speech",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_karaoke_3stem_giantailab.ckpt"
+    },
+    {
+      "name": "small_karaoke_gaboxaufr",
+      "rank": 1,
+      "category": "karaoke",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/karaoke/small_karaoke_gaboxaufr.ckpt"
+    },
+    {
+      "name": "gilliaan_melroformer_karaoke_v1",
+      "rank": 3,
+      "category": "karaoke",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/gilliaan/Stem-Separation-Models/blob/main/Karaoke/MelBandRoformer/gilliaan_melroformer_karaoke_v1.ckpt"
+    },
+    {
+      "name": "gilliaan_bsroformer_deeffect_v1beta",
+      "rank": 4,
+      "category": "karaoke",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/gilliaan/Stem-Separation-Models/resolve/main/DeEffect/BandSplitRoformer/gilliaan_bsroformer_deeffect_v1beta.ckpt"
+    },
+    {
+      "name": "mel_band_karaoke_fusion_standard",
+      "rank": 4,
+      "category": "karaoke > ensembles",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/Gonzaluigi/Mel-Band-Karaoke-Fusion/resolve/main/mel_band_karaoke_fusion_standard.ckpt"
+    },
+    {
+      "name": "bs_pf_sv_v2",
+      "rank": 2,
+      "category": "lead vocals extractor",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/Lambda001/BandSplitPolarFormers/blob/main/BS-PF-SV_V2.ckpt"
+    },
+    {
+      "name": "dereverb_echo_mbr_fused_0_5_v2_0_25_big_0_25_super",
+      "rank": 3,
+      "category": "harmonies",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/Sucial/Dereverb-Echo_Mel_Band_Roformer/blob/main/dereverb_echo_mbr_fused_0.5_v2_0.25_big_0.25_super.ckpt"
+    },
+    {
+      "name": "bs_6stem_fixed",
+      "rank": 2,
+      "category": "4-6 stems",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/bs_roformer/bs_6stem_fixed.ckpt"
+    },
+    {
+      "name": "bs_drums_gilliaaan",
+      "rank": 1,
+      "category": "drums",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_drums_gilliaaan.ckpt"
+    },
+    {
+      "name": "gilliaan_bsroformer_bowedstrings_v2",
+      "rank": 2,
+      "category": "strings",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/gilliaan/Stem-Separation-Models/resolve/main/BowedStrings/BandSplitRoformer/gilliaan_bsroformer_bowedstrings_v2.ckpt"
+    },
+    {
+      "name": "bs_bowed_str_gilliaaan",
+      "rank": 3,
+      "category": "strings",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/bs_roformer/bs_bowed_str_gilliaaan.ckpt"
+    },
+    {
+      "name": "becruily_guitar",
+      "rank": 2,
+      "category": "electric guitar",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/becruily/mel-band-roformer-guitar/resolve/main/becruily_guitar.ckpt"
+    },
+    {
+      "name": "uvr_mdx_net_crowd_hq_1",
+      "rank": 1,
+      "category": "de-crowd",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR-MDX-NET_Crowd_HQ_1.onnx"
+    },
+    {
+      "name": "model_sfxsplitter",
+      "rank": 4,
+      "category": "sfx",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/jazzpear/audio_separation_models_trained_by_jazzpear/blob/main/sound_effects/mdx23c/model_sfxsplitter.ckpt"
+    },
+    {
+      "name": "mdx23c_sfx_jasper",
+      "rank": 6,
+      "category": "sfx",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mdx23c/mdx23c_sfx_jasper.ckpt"
+    },
+    {
+      "name": "lead_vocaldereverb",
+      "rank": 3,
+      "category": "de-reverb",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/GaboxR67/MelBandRoformers/blob/main/melbandroformers/experimental/Lead_VocalDereverb.ckpt"
+    },
+    {
+      "name": "dereverb_mel_band_roformer_mono_anvuew_sdr_20_4029",
+      "rank": 4,
+      "category": "de-reverb",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/anvuew/dereverb_mel_band_roformer/resolve/main/dereverb_mel_band_roformer_mono_anvuew_sdr_20.4029.ckpt"
+    },
+    {
+      "name": "dereverb_mdx23c_sdr_6_9096",
+      "rank": 10,
+      "category": "de-reverb",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://a19p.uvronline.app/public/dereverb_mdx23c_sdr_6.9096.ckpt"
+    },
+    {
+      "name": "deverb_bs_roformer_8_256dim_8depth",
+      "rank": 12,
+      "category": "de-reverb",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/anvuew/dereverb_bs_roformer/blob/main/archive/deverb_bs_roformer_8_256dim_8depth.ckpt"
+    },
+    {
+      "name": "mbr_denoise_yuluoye",
+      "rank": 4,
+      "category": "de-noising",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/blob/main/mel_band_roformer/mbr_denoise_yuluoye.ckpt"
+    },
+    {
+      "name": "mbr_denoise_children_phaedrus33",
+      "rank": 5,
+      "category": "de-noising",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://huggingface.co/noblebarkrr/mvsepless_resources/resolve/main/mel_band_roformer/mbr_denoise_children_phaedrus33.ckpt"
+    },
+    {
+      "name": "uvr_denoise",
+      "rank": 8,
+      "category": "de-noising",
+      "source": "deton24 community guide (UVR-MDX-Demucs-GSEP)",
+      "url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR-DeNoise.pth"
+    }
+  ],
+  "mvsep": [
+    {
+      "name": "BS PolarFormer 124 bands (2026.06.13, MVSep.com)",
+      "entry_id": 10147,
+      "url": "https://mvsep.com/quality_checker/entry/10147",
+      "sdr": {
+        "vocals": 12.023,
+        "instrumental": 18.3304
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 8
+        },
+        {
+          "view": "vocals",
+          "rank": 8
+        }
+      ]
+    },
+    {
+      "name": "BS PolarFormer 124 bands fullness level 1 stems (2026.06.13, MVSep.com)",
+      "entry_id": 10148,
+      "url": "https://mvsep.com/quality_checker/entry/10148",
+      "sdr": {
+        "other": -5.8874,
+        "vocals": 11.9613,
+        "instrumental": 18.302
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 9
+        },
+        {
+          "view": "vocals",
+          "rank": 9
+        }
+      ]
+    },
+    {
+      "name": "BS PolarFormer Vocals (2026.05)",
+      "entry_id": 10009,
+      "url": "https://mvsep.com/quality_checker/entry/10009",
+      "sdr": {
+        "vocals": 11.7575,
+        "instrumental": 18.065
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 17
+        },
+        {
+          "view": "vocals",
+          "rank": 18
+        }
+      ]
+    },
+    {
+      "name": "BS RoFormer (11.89 + 12.33)",
+      "entry_id": 10283,
+      "url": "https://mvsep.com/quality_checker/entry/10283",
+      "sdr": {
+        "vocals": 12.2597,
+        "instrumental": 18.5671
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 6
+        },
+        {
+          "view": "vocals",
+          "rank": 7
+        }
+      ]
+    },
+    {
+      "name": "BS RoFormer 124 bands (High Fullness)",
+      "entry_id": 10255,
+      "url": "https://mvsep.com/quality_checker/entry/10255",
+      "sdr": {
+        "vocals": 12.3098,
+        "instrumental": 18.5193
+      },
+      "views": [
+        {
+          "view": "vocals",
+          "rank": 6
+        },
+        {
+          "view": "instrum",
+          "rank": 7
+        }
+      ]
+    },
+    {
+      "name": "BS Roformer (2025.06.27, MVSep.com)",
+      "entry_id": 8473,
+      "url": "https://mvsep.com/quality_checker/entry/8473",
+      "sdr": {
+        "vocals": 11.8153,
+        "instrumental": 18.1228
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 15
+        },
+        {
+          "view": "vocals",
+          "rank": 15
+        }
+      ]
+    },
+    {
+      "name": "BS Roformer (2025.07.15, MVSep.com)",
+      "entry_id": 8599,
+      "url": "https://mvsep.com/quality_checker/entry/8599",
+      "sdr": {
+        "vocals": 11.8599,
+        "instrumental": 18.1674
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 13
+        },
+        {
+          "view": "vocals",
+          "rank": 13
+        }
+      ]
+    },
+    {
+      "name": "BS Roformer (2025.07.20, MVSep.com)",
+      "entry_id": 8693,
+      "url": "https://mvsep.com/quality_checker/entry/8693",
+      "sdr": {
+        "vocals": 11.8938,
+        "instrumental": 18.2013
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 12
+        },
+        {
+          "view": "vocals",
+          "rank": 12
+        }
+      ]
+    },
+    {
+      "name": "BS Roformer 124 bands (2026.07.10, MVSep.com)",
+      "entry_id": 10197,
+      "url": "https://mvsep.com/quality_checker/entry/10197",
+      "sdr": {
+        "vocals": 12.3339,
+        "instrumental": 18.6414
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 5
+        },
+        {
+          "view": "vocals",
+          "rank": 5
+        }
+      ]
+    },
+    {
+      "name": "BS Roformer SW (6 stems)",
+      "entry_id": 8374,
+      "url": "https://mvsep.com/quality_checker/entry/8374",
+      "sdr": {
+        "bass": 14.6235,
+        "drums": 14.1129,
+        "other": 8.7169,
+        "vocals": 11.3019,
+        "instrumental": 17.5091
+      },
+      "views": [
+        {
+          "view": "bass",
+          "rank": 10
+        },
+        {
+          "view": "drums",
+          "rank": 10
+        },
+        {
+          "view": "other",
+          "rank": 10
+        }
+      ]
+    },
+    {
+      "name": "BS-Roformer SW (with UVR)",
+      "entry_id": 8905,
+      "url": "https://mvsep.com/quality_checker/entry/8905",
+      "sdr": {
+        "bass": 14.5642,
+        "drums": 14.0419,
+        "other": 3.6896,
+        "vocals": 11.2665
+      },
+      "views": [
+        {
+          "view": "drums",
+          "rank": 17
+        },
+        {
+          "view": "bass",
+          "rank": 18
+        }
+      ]
+    },
+    {
+      "name": "BS-Roformer SW-OA-Residual",
+      "entry_id": 9946,
+      "url": "https://mvsep.com/quality_checker/entry/9946",
+      "sdr": {
+        "bass": 14.5365,
+        "drums": 14.0145,
+        "other": 8.6803,
+        "vocals": 11.2548,
+        "instrumental": 17.5623
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 16
+        }
+      ]
+    },
+    {
+      "name": "BS-Roformer SW/RA",
+      "entry_id": 9987,
+      "url": "https://mvsep.com/quality_checker/entry/9987",
+      "sdr": {
+        "bass": 14.5834,
+        "drums": 14.061,
+        "other": 8.7004,
+        "vocals": 11.2699,
+        "instrumental": 17.5774
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 12
+        },
+        {
+          "view": "drums",
+          "rank": 14
+        },
+        {
+          "view": "bass",
+          "rank": 15
+        }
+      ]
+    },
+    {
+      "name": "BS-Roformer SW/RAv2",
+      "entry_id": 9997,
+      "url": "https://mvsep.com/quality_checker/entry/9997",
+      "sdr": {
+        "bass": 14.5952,
+        "drums": 14.0809,
+        "other": 8.7026,
+        "vocals": 11.2681,
+        "instrumental": 17.5755
+      },
+      "views": [
+        {
+          "view": "drums",
+          "rank": 11
+        },
+        {
+          "view": "other",
+          "rank": 11
+        },
+        {
+          "view": "bass",
+          "rank": 14
+        }
+      ]
+    },
+    {
+      "name": "BS-Roformer-SW/RA-Fix-Best-Epoch",
+      "entry_id": 9960,
+      "url": "https://mvsep.com/quality_checker/entry/9960",
+      "sdr": {
+        "bass": 14.5295,
+        "drums": 14.0114,
+        "other": 8.6721,
+        "vocals": 11.244,
+        "instrumental": 17.5515
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 19
+        }
+      ]
+    },
+    {
+      "name": "BS-Roformer_Leap by pcunwa (uvr5)",
+      "entry_id": 10173,
+      "url": "https://mvsep.com/quality_checker/entry/10173",
+      "sdr": {
+        "vocals": 11.7398
+      },
+      "views": [
+        {
+          "view": "vocals",
+          "rank": 19
+        }
+      ]
+    },
+    {
+      "name": "BS²",
+      "entry_id": 8377,
+      "url": "https://mvsep.com/quality_checker/entry/8377",
+      "sdr": {
+        "bass": 14.7863,
+        "drums": 14.2819,
+        "other": 8.8356,
+        "vocals": 11.3865
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 6
+        },
+        {
+          "view": "bass",
+          "rank": 7
+        },
+        {
+          "view": "drums",
+          "rank": 8
+        }
+      ]
+    },
+    {
+      "name": "Bass Ensemble (SCNet XL + BS Roformer SW)",
+      "entry_id": 8375,
+      "url": "https://mvsep.com/quality_checker/entry/8375",
+      "sdr": {
+        "bass": 14.8705
+      },
+      "views": [
+        {
+          "view": "bass",
+          "rank": 5
+        }
+      ]
+    },
+    {
+      "name": "Drums Ensemble (MelBand + SCNet XL + BS Roformer SW)",
+      "entry_id": 8376,
+      "url": "https://mvsep.com/quality_checker/entry/8376",
+      "sdr": {
+        "drums": 14.3505
+      },
+      "views": [
+        {
+          "view": "drums",
+          "rank": 5
+        }
+      ]
+    },
+    {
+      "name": "Logic BS Roformer",
+      "entry_id": 8355,
+      "url": "https://mvsep.com/quality_checker/entry/8355",
+      "sdr": {
+        "bass": 14.5669,
+        "drums": 14.0492,
+        "other": 8.6628,
+        "vocals": 11.2698
+      },
+      "views": [
+        {
+          "view": "drums",
+          "rank": 15
+        },
+        {
+          "view": "bass",
+          "rank": 16
+        }
+      ]
+    },
+    {
+      "name": "MLSLABS WCJ",
+      "entry_id": 9353,
+      "url": "https://mvsep.com/quality_checker/entry/9353",
+      "sdr": {
+        "bass": 14.7841,
+        "drums": 14.2828,
+        "other": 8.8299,
+        "vocals": 11.3882,
+        "instrumental": 17.604
+      },
+      "views": [
+        {
+          "view": "drums",
+          "rank": 7
+        },
+        {
+          "view": "other",
+          "rank": 7
+        },
+        {
+          "view": "bass",
+          "rank": 8
+        }
+      ]
+    },
+    {
+      "name": "MVSep Ensemble (vocals, instrum) (2025.06.28)",
+      "entry_id": 8479,
+      "url": "https://mvsep.com/quality_checker/entry/8479",
+      "sdr": {
+        "vocals": 11.9307,
+        "instrumental": 18.2381
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 10
+        },
+        {
+          "view": "vocals",
+          "rank": 10
+        }
+      ]
+    },
+    {
+      "name": "MVSep Ensemble (vocals, instrum, bass, drums, other) (2025.06.30)",
+      "entry_id": 8504,
+      "url": "https://mvsep.com/quality_checker/entry/8504",
+      "sdr": {
+        "bass": 14.852,
+        "drums": 14.3339,
+        "other": 9.0065,
+        "vocals": 11.9281,
+        "instrumental": 18.2354
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 5
+        },
+        {
+          "view": "bass",
+          "rank": 6
+        },
+        {
+          "view": "drums",
+          "rank": 6
+        },
+        {
+          "view": "instrum",
+          "rank": 11
+        },
+        {
+          "view": "vocals",
+          "rank": 11
+        }
+      ]
+    },
+    {
+      "name": "MVSep Ensemble High Vocals Fullness (vocals, instrum) (2025.06.29)",
+      "entry_id": 8482,
+      "url": "https://mvsep.com/quality_checker/entry/8482",
+      "sdr": {
+        "vocals": 11.6976,
+        "instrumental": 18.0061
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 19
+        }
+      ]
+    },
+    {
+      "name": "Quatra - BS-RoFormer SW (MLX, 13.35 s / 75 % overlap / TTA)",
+      "entry_id": 10674,
+      "url": "https://mvsep.com/quality_checker/entry/10674",
+      "sdr": {
+        "bass": 14.7406,
+        "drums": 14.2026,
+        "other": 8.8068,
+        "vocals": 11.3659,
+        "instrumental": 17.6734
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 8
+        },
+        {
+          "view": "bass",
+          "rank": 9
+        },
+        {
+          "view": "drums",
+          "rank": 9
+        }
+      ]
+    },
+    {
+      "name": "Superoformer rev2",
+      "entry_id": 10791,
+      "url": "https://mvsep.com/quality_checker/entry/10791",
+      "sdr": {
+        "bass": 14.6188,
+        "drums": 13.9624,
+        "other": 8.6903,
+        "vocals": 11.2715,
+        "instrumental": 17.4316
+      },
+      "views": [
+        {
+          "view": "bass",
+          "rank": 11
+        },
+        {
+          "view": "other",
+          "rank": 15
+        }
+      ]
+    },
+    {
+      "name": "Test 10",
+      "entry_id": 8418,
+      "url": "https://mvsep.com/quality_checker/entry/8418",
+      "sdr": {
+        "bass": 14.5143,
+        "drums": 13.9769,
+        "other": 8.6636,
+        "vocals": 11.2474,
+        "instrumental": 17.5549
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 20
+        }
+      ]
+    },
+    {
+      "name": "Test 2025-06-08 #1",
+      "entry_id": 8386,
+      "url": "https://mvsep.com/quality_checker/entry/8386",
+      "sdr": {
+        "bass": 14.6054,
+        "drums": 14.07,
+        "other": 8.6781,
+        "vocals": 11.2733,
+        "instrumental": 17.4395
+      },
+      "views": [
+        {
+          "view": "bass",
+          "rank": 13
+        },
+        {
+          "view": "drums",
+          "rank": 13
+        },
+        {
+          "view": "other",
+          "rank": 18
+        }
+      ]
+    },
+    {
+      "name": "Test 2025-06-08 #2",
+      "entry_id": 8387,
+      "url": "https://mvsep.com/quality_checker/entry/8387",
+      "sdr": {
+        "bass": 14.6054,
+        "drums": 14.07,
+        "other": 8.6781,
+        "vocals": 11.2733,
+        "instrumental": 17.4395
+      },
+      "views": [
+        {
+          "view": "bass",
+          "rank": 12
+        },
+        {
+          "view": "drums",
+          "rank": 12
+        },
+        {
+          "view": "other",
+          "rank": 17
+        }
+      ]
+    },
+    {
+      "name": "Test 7",
+      "entry_id": 8415,
+      "url": "https://mvsep.com/quality_checker/entry/8415",
+      "sdr": {
+        "drums": 14.0325,
+        "other": 8.6947
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 14
+        }
+      ]
+    },
+    {
+      "name": "bs_leap_voc_unwa.ckpt",
+      "entry_id": 10416,
+      "url": "https://mvsep.com/quality_checker/entry/10416",
+      "sdr": {
+        "vocals": 11.7243,
+        "instrumental": 18.0317
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 18
+        },
+        {
+          "view": "vocals",
+          "rank": 20
+        }
+      ]
+    },
+    {
+      "name": "bs_leap_xe_voc_unwa.ckpt",
+      "entry_id": 10411,
+      "url": "https://mvsep.com/quality_checker/entry/10411",
+      "sdr": {
+        "vocals": 11.7615,
+        "instrumental": 18.0689
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 16
+        },
+        {
+          "view": "vocals",
+          "rank": 16
+        }
+      ]
+    },
+    {
+      "name": "bs_logic_6stem.ckpt",
+      "entry_id": 10763,
+      "url": "https://mvsep.com/quality_checker/entry/10763",
+      "sdr": {
+        "bass": 14.5526,
+        "drums": 14.0343,
+        "other": 3.6897,
+        "vocals": 11.2662
+      },
+      "views": [
+        {
+          "view": "drums",
+          "rank": 20
+        }
+      ]
+    },
+    {
+      "name": "bs_resurrection2_quality_test_unwa.ckpt",
+      "entry_id": 10419,
+      "url": "https://mvsep.com/quality_checker/entry/10419",
+      "sdr": {
+        "vocals": 11.6627,
+        "instrumental": 17.9702
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 20
+        }
+      ]
+    },
+    {
+      "name": "sami-bytedance-v.1.1",
+      "entry_id": 6877,
+      "url": "https://mvsep.com/quality_checker/entry/6877",
+      "sdr": {
+        "vocals": 11.8225,
+        "instrumental": 18.13
+      },
+      "views": [
+        {
+          "view": "instrum",
+          "rank": 14
+        },
+        {
+          "view": "vocals",
+          "rank": 14
+        }
+      ]
+    },
+    {
+      "name": "test",
+      "entry_id": 9231,
+      "url": "https://mvsep.com/quality_checker/entry/9231",
+      "sdr": {
+        "bass": 14.4858,
+        "drums": 13.9586,
+        "other": 8.6975,
+        "vocals": 11.4519
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 13
+        }
+      ]
+    },
+    {
+      "name": "test 2x",
+      "entry_id": 9225,
+      "url": "https://mvsep.com/quality_checker/entry/9225",
+      "sdr": {
+        "bass": 14.5621,
+        "drums": 14.0412,
+        "other": 8.7492,
+        "vocals": 11.4744
+      },
+      "views": [
+        {
+          "view": "other",
+          "rank": 9
+        },
+        {
+          "view": "bass",
+          "rank": 19
+        },
+        {
+          "view": "drums",
+          "rank": 19
+        }
+      ]
+    },
+    {
+      "name": "undefined",
+      "entry_id": 8369,
+      "url": "https://mvsep.com/quality_checker/entry/8369",
+      "sdr": {
+        "bass": 14.5533,
+        "drums": 14.0413,
+        "other": 8.6606,
+        "vocals": 11.2693
+      },
+      "views": [
+        {
+          "view": "drums",
+          "rank": 18
+        },
+        {
+          "view": "bass",
+          "rank": 20
+        }
+      ]
+    },
+    {
+      "name": "undefined-f16",
+      "entry_id": 8371,
+      "url": "https://mvsep.com/quality_checker/entry/8371",
+      "sdr": {
+        "bass": 14.5667,
+        "drums": 14.0486,
+        "other": 8.6624,
+        "vocals": 11.27
+      },
+      "views": [
+        {
+          "view": "drums",
+          "rank": 16
+        },
+        {
+          "view": "bass",
+          "rank": 17
+        }
+      ]
+    },
+    {
+      "name": "unwa leap Xe",
+      "entry_id": 10178,
+      "url": "https://mvsep.com/quality_checker/entry/10178",
+      "sdr": {
+        "vocals": 11.7577,
+        "instrumental": 17.5303
+      },
+      "views": [
+        {
+          "view": "vocals",
+          "rank": 17
+        }
+      ]
+    }
+  ]
+}

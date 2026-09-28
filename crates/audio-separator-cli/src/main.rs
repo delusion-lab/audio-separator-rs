@@ -46,6 +46,12 @@ enum Command {
         /// Override model list source: remote JSON URL.
         #[arg(long)]
         models_url: Option<String>,
+        /// Override ranking data source: local JSON path (community / mvsep rankings).
+        #[arg(long)]
+        rankings_file: Option<PathBuf>,
+        /// Override ranking data source: remote JSON URL.
+        #[arg(long)]
+        rankings_url: Option<String>,
         /// asep-server base URL (used when backend=server).
         #[arg(long, default_value = "http://127.0.0.1:8080")]
         server_url: String,
@@ -60,7 +66,7 @@ enum Command {
         top: usize,
     },
 
-    /// Show model details (architecture, engine, stems, params, source).
+    /// Show model details (architecture, engine, stems, params, source, rankings).
     #[command(name = "model-info")]
     ModelInfo {
         /// Model name / download URL / local path.
@@ -71,6 +77,34 @@ enum Command {
         /// 覆盖模型清单源：远程 JSON URL。
         #[arg(long)]
         models_url: Option<String>,
+        /// 覆盖排名数据源：本地 JSON 路径。
+        #[arg(long)]
+        rankings_file: Option<PathBuf>,
+        /// 覆盖排名数据源：远程 JSON URL。
+        #[arg(long)]
+        rankings_url: Option<String>,
+    },
+
+    /// Show ranking data (community guide / MVSEP leaderboard snapshot).
+    Rankings {
+        /// 分节：community / mvsep。
+        #[arg(long, value_enum, default_value_t = RankingsSection::Community)]
+        section: RankingsSection,
+        /// 排序方式：rank（默认，community 按分类内名次 / mvsep 按视图名次）/ sdr。
+        #[arg(long, value_enum, default_value_t = RankingsSort::Rank)]
+        sort: RankingsSort,
+        /// MVSEP 排序视图：instrum / vocals / bass / drums / other（仅 mvsep 分节）。
+        #[arg(long, default_value = "instrum")]
+        view: String,
+        /// 仅显示前 N 条（0 = 全部）。
+        #[arg(long, default_value_t = 0)]
+        top: usize,
+        /// 排名数据源：本地 JSON 路径。
+        #[arg(long)]
+        rankings_file: Option<PathBuf>,
+        /// 排名数据源：远程 JSON URL。
+        #[arg(long)]
+        rankings_url: Option<String>,
     },
 
     /// Query task status (MVSEP hash or asep-server task id).
@@ -221,6 +255,24 @@ enum ModelsSort {
     Community,
 }
 
+/// `rankings` 子命令分节。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+enum RankingsSection {
+    /// deton24 社区指南推荐（community section）。
+    Community,
+    /// MVSEP multisong leaderboard 快照（mvsep section）。
+    Mvsep,
+}
+
+/// `rankings` 子命令排序方式。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+enum RankingsSort {
+    /// 按名次排序（community 按分类内名次；mvsep 按指定视图名次）。
+    Rank,
+    /// 按 SDR 降序（community 用 metrics.sdr；mvsep 用指定视图对应 SDR）。
+    Sdr,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
 enum FormatArg {
     /// 16-bit PCM WAV (default).
@@ -278,16 +330,39 @@ async fn main() {
             backend,
             models_file,
             models_url,
+            rankings_file,
+            rankings_url,
             server_url,
             auth_token,
             sort,
             top,
-        } => run_models(backend, models_file, models_url, server_url, auth_token, sort, top).await,
+        } => run_models(
+            backend,
+            models_file,
+            models_url,
+            rankings_file,
+            rankings_url,
+            server_url,
+            auth_token,
+            sort,
+            top,
+        )
+        .await,
         Command::ModelInfo {
             model,
             models_file,
             models_url,
-        } => run_model_info(&model, models_file, models_url).await,
+            rankings_file,
+            rankings_url,
+        } => run_model_info(&model, models_file, models_url, rankings_file, rankings_url).await,
+        Command::Rankings {
+            section,
+            sort,
+            view,
+            top,
+            rankings_file,
+            rankings_url,
+        } => run_rankings(section, sort, view, top, rankings_file, rankings_url).await,
         Command::JobStatus {
             id,
             api_key,
@@ -640,7 +715,12 @@ async fn run_job_status(
 }
 
 /// 从 CLI 覆盖项构建配置（config 文件 → 默认 → CLI 覆盖）。
-fn build_config(models_file: Option<PathBuf>, models_url: Option<String>) -> Result<Config> {
+fn build_config(
+    models_file: Option<PathBuf>,
+    models_url: Option<String>,
+    rankings_file: Option<PathBuf>,
+    rankings_url: Option<String>,
+) -> Result<Config> {
     let mut cfg = Config::default();
     if let Some(f) = &models_file {
         cfg.models.list = Some(ModelListSource::Path(f.clone()));
@@ -648,11 +728,24 @@ fn build_config(models_file: Option<PathBuf>, models_url: Option<String>) -> Res
     if let Some(u) = &models_url {
         cfg.models.list = Some(ModelListSource::Url(u.clone()));
     }
+    if let Some(f) = &rankings_file {
+        cfg.models.rankings = Some(ModelListSource::Path(f.clone()));
+    }
+    if let Some(u) = &rankings_url {
+        cfg.models.rankings = Some(ModelListSource::Url(u.clone()));
+    }
     // 兜底：未指定清单源且工作目录存在 models.json 时自动加载（与 run_separate 行为一致）
     if cfg.models.list.is_none() {
         let local = Path::new("models.json");
         if local.exists() {
             cfg.models.list = Some(ModelListSource::Path(local.to_path_buf()));
+        }
+    }
+    // 兜底：未指定排名源且工作目录存在 rankings.json 时自动加载（与 models.json 同目录发布）
+    if cfg.models.rankings.is_none() {
+        let local = Path::new("rankings.json");
+        if local.exists() {
+            cfg.models.rankings = Some(ModelListSource::Path(local.to_path_buf()));
         }
     }
     Ok(cfg)
@@ -663,6 +756,8 @@ async fn run_models(
     backend: BackendArg,
     models_file: Option<PathBuf>,
     models_url: Option<String>,
+    rankings_file: Option<PathBuf>,
+    rankings_url: Option<String>,
     server_url: String,
     auth_token: Option<String>,
     sort: ModelsSort,
@@ -674,23 +769,25 @@ async fn run_models(
     if backend == BackendArg::Server {
         return run_models_server(&server_url, auth_token, sort, top).await;
     }
-    let cfg = build_config(models_file, models_url)?;
+    let cfg = build_config(models_file, models_url, rankings_file, rankings_url)?;
     let manager = tokio::task::spawn_blocking(move || {
         ModelManager::load(&cfg.models, cfg.network.proxy.as_deref())
     })
     .await
     .map_err(|e| Error::Other(format!("model list load failed: {e}")))??;
     let mut list = manager.list().clone();
-    apply_list_options(&mut list, sort, top);
-    print_model_list(&list, sort, top);
+    let rankings = manager.rankings();
+    apply_list_options(&mut list, sort, top, rankings);
+    print_model_list(&list, sort, top, rankings);
     Ok(())
 }
 
-/// 按 sort/top 就地处理清单：SDR 降序（无分数排最后）+ 可选截取前 N。
+/// 按 sort/top 就地处理清单：SDR 降序（无分数排最后）/ community 排名升序 + 可选截取前 N。
 fn apply_list_options(
     list: &mut audio_separator_core::model::ModelList,
     sort: ModelsSort,
     top: usize,
+    rankings: &audio_separator_core::rankings::RankingsList,
 ) {
     if sort == ModelsSort::Sdr {
         list.models.sort_by(|a, b| {
@@ -706,8 +803,8 @@ fn apply_list_options(
     }
     if sort == ModelsSort::Community {
         list.models.sort_by(|a, b| {
-            let ra = a.scores.as_ref().and_then(|s| s.community_rank.as_ref()).and_then(|c| c.rank);
-            let rb = b.scores.as_ref().and_then(|s| s.community_rank.as_ref()).and_then(|c| c.rank);
+            let ra = rankings.community_of(&a.name).and_then(|e| e.rank);
+            let rb = rankings.community_of(&b.name).and_then(|e| e.rank);
             match (ra, rb) {
                 (Some(x), Some(y)) => x.cmp(&y),
                 (Some(_), None) => std::cmp::Ordering::Less,
@@ -726,6 +823,7 @@ fn print_model_list(
     list: &audio_separator_core::model::ModelList,
     sort: ModelsSort,
     top: usize,
+    rankings: &audio_separator_core::rankings::RankingsList,
 ) {
     if list.models.is_empty() {
         println!("model list is empty (models.list not configured or list has no models)");
@@ -767,10 +865,8 @@ fn print_model_list(
             .and_then(|s| s.musdb_sdr)
             .map(|sdr| format!(" | SDR: {sdr:.2}dB"))
             .unwrap_or_default();
-        let community_seg = m
-            .scores
-            .as_ref()
-            .and_then(|s| s.community_rank.as_ref())
+        let community_seg = rankings
+            .community_of(&m.name)
             .map(|c| {
                 // category 取最后一个 ">" 后的部分（如 "2 stems > instrumentals" → "instrumentals"）。
                 let cat_short = c.category.as_ref().map(|cat| {
@@ -827,8 +923,8 @@ async fn run_models_server(
     let v = client.models("local").await?;
     let mut list: audio_separator_core::model::ModelList = serde_json::from_value(v)
         .map_err(|e| Error::Other(format!("invalid server model list: {e}")))?;
-    apply_list_options(&mut list, sort, top);
-    print_model_list(&list, sort, top);
+    apply_list_options(&mut list, sort, top, &audio_separator_core::rankings::RankingsList::default());
+    print_model_list(&list, sort, top, &audio_separator_core::rankings::RankingsList::default());
     Ok(())
 }
 
@@ -859,13 +955,15 @@ async fn run_models_mvsep() -> Result<()> {
     Ok(())
 }
 
-/// `model-info`：查看单个模型详情。
+/// `model-info`：查看单个模型详情（含排名信息）。
 async fn run_model_info(
     model: &str,
     models_file: Option<PathBuf>,
     models_url: Option<String>,
+    rankings_file: Option<PathBuf>,
+    rankings_url: Option<String>,
 ) -> Result<()> {
-    let cfg = build_config(models_file, models_url)?;
+    let cfg = build_config(models_file, models_url, rankings_file, rankings_url)?;
     let manager = tokio::task::spawn_blocking(move || {
         ModelManager::load(&cfg.models, cfg.network.proxy.as_deref())
     })
@@ -879,5 +977,215 @@ async fn run_model_info(
         "{}",
         serde_json::to_string_pretty(entry).map_err(Error::Json)?
     );
+    // 排名信息段（社区指南 / MVSEP 快照；未上榜则明确标注）。
+    let rankings = manager.rankings();
+    match rankings.community_of(model) {
+        Some(cr) => {
+            let metrics = cr
+                .metrics
+                .as_ref()
+                .map(|m| {
+                    format!(
+                        " (sdr={}, fullness={}, bleedless={})",
+                        fmt_opt(m.sdr),
+                        fmt_opt(m.fullness),
+                        fmt_opt(m.bleedless)
+                    )
+                })
+                .unwrap_or_default();
+            let rank = cr.rank.map(|r| format!("#{r}")).unwrap_or_else(|| "-".to_string());
+            let cat = cr.category.as_deref().unwrap_or("-");
+            println!("community: {rank} {cat}{metrics}");
+        }
+        None => println!("community: not in community guide rankings"),
+    }
+    match rankings.mvsep_of(model) {
+        Some(mr) => {
+            let sdr = mr
+                .sdr
+                .as_ref()
+                .map(|s| {
+                    format!(
+                        " (inst={}, voc={}, bass={}, drums={}, other={})",
+                        fmt_opt(s.instrumental),
+                        fmt_opt(s.vocals),
+                        fmt_opt(s.bass),
+                        fmt_opt(s.drums),
+                        fmt_opt(s.other)
+                    )
+                })
+                .unwrap_or_default();
+            let views: Vec<String> = mr.views.iter().map(|v| format!("{}=#{}", v.view, v.rank)).collect();
+            println!("mvsep: {}{} [{}]", mr.name, sdr, views.join(", "));
+        }
+        None => println!("mvsep: not in leaderboard snapshot"),
+    }
     Ok(())
+}
+
+/// 可选的浮点指标显示（None → "-"）。
+fn fmt_opt(v: Option<f64>) -> String {
+    v.map(|x| format!("{x:.2}")).unwrap_or_else(|| "-".to_string())
+}
+
+/// `rankings`：列出社区指南推荐 / MVSEP 排行榜快照。
+async fn run_rankings(
+    section: RankingsSection,
+    sort: RankingsSort,
+    view: String,
+    top: usize,
+    rankings_file: Option<PathBuf>,
+    rankings_url: Option<String>,
+) -> Result<()> {
+    let cfg = build_config(None, None, rankings_file, rankings_url)?;
+    let manager = tokio::task::spawn_blocking(move || {
+        ModelManager::load(&cfg.models, cfg.network.proxy.as_deref())
+    })
+    .await
+    .map_err(|e| Error::Other(format!("rankings load failed: {e}")))??;
+    let r = manager.rankings();
+    match section {
+        RankingsSection::Community => print_community_rankings(r, sort, top),
+        RankingsSection::Mvsep => print_mvsep_rankings(r, sort, &view, top),
+    }
+    Ok(())
+}
+
+/// 打印社区指南推荐（默认按分类分组 + 名次升序；--sort sdr 时按 SDR 降序平铺）。
+fn print_community_rankings(
+    r: &audio_separator_core::rankings::RankingsList,
+    sort: RankingsSort,
+    top: usize,
+) {
+    use audio_separator_core::rankings::CommunityRankEntry;
+    if r.community.is_empty() {
+        println!(
+            "community rankings: empty (set --rankings-file/--rankings-url or place rankings.json next to models.json)"
+        );
+        return;
+    }
+    let mut entries: Vec<&CommunityRankEntry> = r.community.iter().collect();
+    let total = entries.len();
+    match sort {
+        RankingsSort::Rank => entries.sort_by(|a, b| {
+            a.category
+                .cmp(&b.category)
+                .then(a.rank.unwrap_or(u32::MAX).cmp(&b.rank.unwrap_or(u32::MAX)))
+        }),
+        RankingsSort::Sdr => entries.sort_by(|a, b| {
+            let sa = a.metrics.as_ref().and_then(|m| m.sdr);
+            let sb = b.metrics.as_ref().and_then(|m| m.sdr);
+            match (sa, sb) {
+                (Some(x), Some(y)) => y.partial_cmp(&x).unwrap_or(std::cmp::Ordering::Equal),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            }
+        }),
+    }
+    if top > 0 && entries.len() > top {
+        entries.truncate(top);
+    }
+    let suffix = match sort {
+        RankingsSort::Sdr => ", sorted by SDR descending",
+        RankingsSort::Rank => ", sorted by category + rank",
+    };
+    println!("community rankings ({} of {} entries{suffix})", entries.len(), total);
+    let mut cur: Option<String> = None;
+    for e in &entries {
+        if sort == RankingsSort::Rank {
+            let cat = e.category.clone().unwrap_or_else(|| "(uncategorized)".to_string());
+            if cur.as_deref() != Some(cat.as_str()) {
+                println!("\n[{}]", cat);
+                cur = Some(cat);
+            }
+        }
+        let rank = e.rank.map(|r| format!("#{r} ")).unwrap_or_default();
+        let metrics = e
+            .metrics
+            .as_ref()
+            .map(|m| {
+                format!(
+                    "  (sdr={}, fullness={}, bleedless={})",
+                    fmt_opt(m.sdr),
+                    fmt_opt(m.fullness),
+                    fmt_opt(m.bleedless)
+                )
+            })
+            .unwrap_or_default();
+        println!("  {}{}{}", rank, e.name, metrics);
+    }
+}
+
+/// 打印 MVSEP 排行榜快照（按指定视图名次升序；--sort sdr 时按视图 SDR 降序）。
+fn print_mvsep_rankings(
+    r: &audio_separator_core::rankings::RankingsList,
+    sort: RankingsSort,
+    view: &str,
+    top: usize,
+) {
+    use audio_separator_core::rankings::MvsepRankEntry;
+    if r.mvsep.is_empty() {
+        println!(
+            "mvsep rankings: empty (set --rankings-file/--rankings-url or place rankings.json next to models.json)"
+        );
+        return;
+    }
+    let view_rank = |e: &MvsepRankEntry| -> Option<u32> {
+        e.views.iter().find(|v| v.view == view).map(|v| v.rank)
+    };
+    let view_sdr = |e: &MvsepRankEntry| -> Option<f64> {
+        let m = e.sdr.as_ref()?;
+        match view {
+            "vocals" => m.vocals,
+            "bass" => m.bass,
+            "drums" => m.drums,
+            "other" => m.other,
+            _ => m.instrumental,
+        }
+    };
+    let mut entries: Vec<&MvsepRankEntry> = r.mvsep.iter().collect();
+    let total = entries.len();
+    match sort {
+        RankingsSort::Rank => entries.sort_by(|a, b| {
+            view_rank(a)
+                .unwrap_or(u32::MAX)
+                .cmp(&view_rank(b).unwrap_or(u32::MAX))
+        }),
+        RankingsSort::Sdr => entries.sort_by(|a, b| {
+            match (view_sdr(a), view_sdr(b)) {
+                (Some(x), Some(y)) => y.partial_cmp(&x).unwrap_or(std::cmp::Ordering::Equal),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            }
+        }),
+    }
+    if top > 0 && entries.len() > top {
+        entries.truncate(top);
+    }
+    let suffix = match sort {
+        RankingsSort::Sdr => format!(", sorted by {view} SDR descending"),
+        RankingsSort::Rank => format!(", sorted by {view} rank"),
+    };
+    println!("mvsep rankings ({} of {} entries, view={}{suffix})", entries.len(), total, view);
+    for e in &entries {
+        let rk = view_rank(e).map(|r| format!("#{r} ")).unwrap_or_default();
+        let sdr = e
+            .sdr
+            .as_ref()
+            .map(|s| {
+                format!(
+                    "  (inst={}, voc={}, bass={}, drums={}, other={})",
+                    fmt_opt(s.instrumental),
+                    fmt_opt(s.vocals),
+                    fmt_opt(s.bass),
+                    fmt_opt(s.drums),
+                    fmt_opt(s.other)
+                )
+            })
+            .unwrap_or_default();
+        let url = e.url.as_deref().unwrap_or("");
+        println!("  {}{}{}  {}", rk, e.name, sdr, url);
+    }
 }

@@ -11,6 +11,7 @@ pub mod io;
 pub mod job;
 pub mod model;
 pub mod model_config;
+pub mod rankings;
 pub mod weights;
 
 pub use backend::{Input, SeparationRequest, SeparationResult, Separator};

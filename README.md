@@ -119,11 +119,17 @@ asep models --sort sdr --top 10
 # Rank by community recommendation (deton24 guide, ascending; shows category + rank)
 asep models --sort community
 
-# Inspect a single model (includes scores if available)
+# Inspect a single model (includes SDR scores and ranking info if available)
 asep model-info model_bs_roformer_ep_368_sdr_12.9628
+
+# Ranking data lives in a separate file (rankings.json); inspect it directly:
+asep rankings                            # community guide section, grouped by category + rank
+asep rankings --section mvsep            # MVSEP multisong leaderboard snapshot, by instrum rank
+asep rankings --section mvsep --view vocals --top 10
+asep rankings --section community --sort sdr
 ```
 
-Scores come from three sources: the python-audio-separator benchmark (MUSDB18-HQ median SDR), the deton24 UVR-MDX-Demucs-GSEP community guide (category rank + fullness/bleedless/SDR metrics), and the MVSEP platform catalog. Models without SDR data are listed last when sorting by SDR; models without community ranking are listed last when sorting by community. Architectures other than mdx / bs_roformer / mel_band_roformer / bs_polarformer are catalogued for the MVSEP cloud backend but cannot run locally.
+Scores and rankings come from three sources: the python-audio-separator benchmark (MUSDB18-HQ median SDR, kept in `models.json`), the deton24 UVR-MDX-Demucs-GSEP community guide (category rank + fullness/bleedless/SDR metrics), and the MVSEP multisong leaderboard snapshot (per-stem SDR). The latter two live in the separate `rankings.json` (see below). Models without SDR data are listed last when sorting by SDR; models without community ranking are listed last when sorting by community. Architectures other than mdx / bs_roformer / mel_band_roformer / bs_polarformer are catalogued for the MVSEP cloud backend but cannot run locally.
 
 ### Server
 
@@ -144,6 +150,7 @@ REST endpoints:
 | GET | `/api/v1/tasks/{id}/download?stem=` | download a stem |
 | DELETE | `/api/v1/tasks/{id}` | cancel a running task or clean up a finished one |
 | GET | `/api/v1/models?backend=local\|mvsep` | model list / MVSEP algorithm catalog |
+| GET | `/api/v1/rankings` | ranking data (community guide / MVSEP leaderboard snapshot) |
 | GET | `/api/v1/health` | health check |
 
 Upload example:
@@ -177,6 +184,15 @@ Entry example:
 `config_url` lets you point directly at the parameter file (yaml/json) that open-source model authors ship with their weights, as the authoritative source of architecture params.
 
 **Bypass models.json entirely**: `--model <URL|local path> --config-url <URL|local path>` (CLI), or the multipart `config_url` field (server) — both weights and the param file can be specified directly without registering a manifest entry. When referencing a name, `config_url` overrides the manifest entry's config. The server `POST /api/v1/separate` `config_url` field works the same way.
+
+## Rankings (rankings.json)
+
+Ranking / recommendation data is maintained separately from the model list, since its sources (community guide, MVSEP leaderboard) are updated independently of the catalog:
+
+- `community` section: deton24 UVR-MDX-Demucs-GSEP community guide entries (`name` matches the model list, plus rank / category / metrics / source / url);
+- `mvsep` section: MVSEP multisong leaderboard snapshot (platform algorithm names, per-stem SDR, rank in each sort view, quality-checker entry URL).
+
+Loading follows the same mechanism as the model list: by default the repo-local `rankings.json` is read (the same directory fallback as `models.json`); `--rankings-url <url>` / config `models.rankings = { url = "..." }` pull a remote file; `--rankings-file <path>` / `{ path = "..." }` point at a local one. The ranking file is optional — everything still works without it (community display and sorting simply fall back to empty).
 
 ## Network & proxy
 

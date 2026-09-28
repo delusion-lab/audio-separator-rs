@@ -57,6 +57,9 @@ pub enum ModelListSource {
 pub struct ModelsConfig {
     /// 模型清单源（本地 JSON 或 URL）。为空时使用内置默认清单（M1 起生效）。
     pub list: Option<ModelListSource>,
+    /// 排名数据源（本地 JSON 或 URL，结构见 `rankings::RankingsList`）。
+    /// 为空时不加载排名数据（`asep rankings` / `--sort community` 展示为空）。
+    pub rankings: Option<ModelListSource>,
     /// 模型缓存目录。为空时使用系统缓存目录下 `audio-separator-rs/models`。
     pub cache_dir: Option<PathBuf>,
 }

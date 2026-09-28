@@ -117,11 +117,17 @@ asep models --sort sdr --top 10
 # コミュニティ推奨順でランク付け（deton24 ガイド、昇順；カテゴリ+順位を表示）
 asep models --sort community
 
-# 単一モデルの詳細を確認（スコアがあれば表示）
+# 単一モデルの詳細を確認（SDR スコアとランキング情報があれば表示）
 asep model-info model_bs_roformer_ep_368_sdr_12.9628
+
+# ランキングデータは別ファイル（rankings.json）にあります。直接確認:
+asep rankings                            # コミュニティガイド節、カテゴリ+順位でグループ化
+asep rankings --section mvsep            # MVSEP multisong リーダーボードスナップショット（instrum 順位）
+asep rankings --section mvsep --view vocals --top 10
+asep rankings --section community --sort sdr
 ```
 
-スコアは3つのソースに由来します：python-audio-separator のベンチマーク（MUSDB18-HQ 中央値 SDR）、deton24 UVR-MDX-Demucs-GSEP コミュニティガイド（カテゴリ順位 + fullness/bleedless/SDR メトリクス）、MVSEP プラットフォームカタログ。SDR ソート時、スコアのないモデルは最後に配置されます。コミュニティソート時、コミュニティ推奨のないモデルは最後に配置されます。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外のアーキテクチャは MVSEP クラウドバックエンド用に登録されており、ローカルでは実行できません。
+スコアとランキングは3つのソースに由来します：python-audio-separator のベンチマーク（MUSDB18-HQ 中央値 SDR、`models.json` に保持）、deton24 UVR-MDX-Demucs-GSEP コミュニティガイド（カテゴリ順位 + fullness/bleedless/SDR メトリクス）、MVSEP multisong リーダーボードスナップショット（ステム別 SDR）。後者2つは独立した `rankings.json` に格納されます（下記参照）。SDR ソート時、スコアのないモデルは最後に配置されます。コミュニティソート時、コミュニティ推奨のないモデルは最後に配置されます。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外のアーキテクチャは MVSEP クラウドバックエンド用に登録されており、ローカルでは実行できません。
 
 ### サーバー
 
@@ -142,6 +148,7 @@ REST エンドポイント:
 | GET | `/api/v1/tasks/{id}/download?stem=` | ステム結果のダウンロード |
 | DELETE | `/api/v1/tasks/{id}` | 実行中タスクのキャンセル / 終了タスクの削除 |
 | GET | `/api/v1/models?backend=local\|mvsep` | モデルリスト / MVSEP アルゴリズムカタログ |
+| GET | `/api/v1/rankings` | ランキングデータ（コミュニティガイド / MVSEP リーダーボードスナップショット） |
 | GET | `/api/v1/health` | ヘルスチェック |
 
 アップロード例:
@@ -177,6 +184,15 @@ curl -F "audio=@input.wav" -F "model=model_bs_polarformer_float16" \
 **models.json を完全にバイパス**: `--model <URL|ローカルパス> --config-url <URL|ローカルパス>`（CLI）、または multipart の `config_url` フィールド（サーバー）
 で、重みとパラメータファイルをマニフェスト登録なしで直接指定できます。名前で参照する場合、`config_url` はマニフェストエントリの同名設定を上書きします。
 サーバー `POST /api/v1/separate` の `config_url` フィールドも同様に有効です。
+
+## ランキングデータ（rankings.json）
+
+ランキング/推奨データはモデルリストとは別に管理されます。そのソース（コミュニティガイド、MVSEP リーダーボード）はカタログとは独立して更新されるためです:
+
+- `community` 節：deton24 UVR-MDX-Demucs-GSEP コミュニティガイドエントリ（`name` はモデルリストと一致。rank / category / metrics / source / url を含む）;
+- `mvsep` 節：MVSEP multisong リーダーボードスナップショット（プラットフォームのアルゴリズム名、ステム別 SDR、各ソートビューの順位、品質チェックエントリ URL）。
+
+読み込みはモデルリストと同じ仕組みです：デフォルトでリポジトリ内の `rankings.json` を読み込み（`models.json` と同じディレクトリフォールバック）；`--rankings-url <url>` / 設定 `models.rankings = { url = "..." }` でリモートファイルを取得；`--rankings-file <path>` / `{ path = "..." }` でローカルファイルを指定。ランキングファイルは任意です——なくてもすべて動作します（コミュニティ表示とソートは空にフォールバック）。
 
 ## ネットワークとプロキシ
 
