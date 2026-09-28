@@ -125,9 +125,16 @@ asep rankings                            # 社区指南分节，按分类+名次
 asep rankings --section mvsep            # MVSEP multisong 榜单快照，按 instrum 名次
 asep rankings --section mvsep --view vocals --top 10
 asep rankings --section community --sort sdr
+
+# 按架构 / 分轨数 / 声部分离功能过滤（可与 --sort / --top 组合）
+asep models --arch bs_roformer           # 所有 bs_roformer 模型
+asep models --arch mdx,vr                # mdx 或 vr 任一
+asep models --stems 4                    # 恰好 4 分轨
+asep models --stem drums                 # 可分离鼓组的模型
+asep models --arch mdx --stem vocals --top 5
 ```
 
-分数与排名来自三个来源：python-audio-separator 基准测试（MUSDB18-HQ 中位 SDR，保留在 `models.json`）、deton24 UVR-MDX-Demucs-GSEP 社区指南（分类排名 + fullness/bleedless/SDR 指标）、以及 MVSEP multisong 榜单快照（各声部 SDR）。后两者存放于独立的 `rankings.json`（见下）。按 SDR 排序时无分数的模型排在最后；按社区排名排序时无社区推荐的模型排在最后。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外的架构收录用于 MVSEP 云后端，本地无法运行。
+分数与排名来自三个来源：python-audio-separator 基准测试（MUSDB18-HQ 中位 SDR，保留在 `models.json`）、deton24 UVR-MDX-Demucs-GSEP 社区指南（分类排名 + fullness/bleedless/SDR 指标）、以及 MVSEP multisong 榜单快照（各声部 SDR）。后两者存放于独立的 `rankings.json`（见下）。按 SDR 排序时无分数的模型排在最后；按社区排名排序时无社区推荐的模型排在最后。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外的架构收录用于 MVSEP 云后端，本地无法运行。可按架构（`--arch`，逗号分隔多值、任一匹配）、分轨数（`--stems`，精确匹配）或声部名（`--stem`）在排序前过滤清单；服务端 API 同样接受这些过滤参数（`/api/v1/models?arch=…&stems=…&stem=…`）。
 
 ### 服务端
 
@@ -147,7 +154,7 @@ REST 接口：
 | GET | `/api/v1/tasks/{id}` | 查询任务状态（queued/running/done/failed/cancelled + 进度） |
 | GET | `/api/v1/tasks/{id}/download?stem=` | 下载分轨结果 |
 | DELETE | `/api/v1/tasks/{id}` | 取消运行中任务或清理终态任务 |
-| GET | `/api/v1/models?backend=local\|mvsep` | 模型列表 / MVSEP 算法目录 |
+| GET | `/api/v1/models?backend=local\|mvsep[&arch=&stems=&stem=]` | 模型列表（可选架构 / 分轨数 / 声部过滤，仅 local）/ MVSEP 算法目录 |
 | GET | `/api/v1/rankings` | 排名数据（社区指南 / MVSEP 榜单快照） |
 | GET | `/api/v1/health` | 健康检查 |
 

@@ -125,9 +125,16 @@ asep rankings                            # コミュニティガイド節、カ�
 asep rankings --section mvsep            # MVSEP multisong リーダーボードスナップショット（instrum 順位）
 asep rankings --section mvsep --view vocals --top 10
 asep rankings --section community --sort sdr
+
+# アーキテクチャ / ステム数 / ステム名でフィルタ（--sort / --top と組み合わせ可）
+asep models --arch bs_roformer           # bs_roformer の全モデル
+asep models --arch mdx,vr                # mdx または vr のいずれか
+asep models --stems 4                    # ちょうど 4 ステム
+asep models --stem drums                 # ドラム分離が可能なモデル
+asep models --arch mdx --stem vocals --top 5
 ```
 
-スコアとランキングは3つのソースに由来します：python-audio-separator のベンチマーク（MUSDB18-HQ 中央値 SDR、`models.json` に保持）、deton24 UVR-MDX-Demucs-GSEP コミュニティガイド（カテゴリ順位 + fullness/bleedless/SDR メトリクス）、MVSEP multisong リーダーボードスナップショット（ステム別 SDR）。後者2つは独立した `rankings.json` に格納されます（下記参照）。SDR ソート時、スコアのないモデルは最後に配置されます。コミュニティソート時、コミュニティ推奨のないモデルは最後に配置されます。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外のアーキテクチャは MVSEP クラウドバックエンド用に登録されており、ローカルでは実行できません。
+スコアとランキングは3つのソースに由来します：python-audio-separator のベンチマーク（MUSDB18-HQ 中央値 SDR、`models.json` に保持）、deton24 UVR-MDX-Demucs-GSEP コミュニティガイド（カテゴリ順位 + fullness/bleedless/SDR メトリクス）、MVSEP multisong リーダーボードスナップショット（ステム別 SDR）。後者2つは独立した `rankings.json` に格納されます（下記参照）。SDR ソート時、スコアのないモデルは最後に配置されます。コミュニティソート時、コミュニティ推奨のないモデルは最後に配置されます。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外のアーキテクチャは MVSEP クラウドバックエンド用に登録されており、ローカルでは実行できません。アーキテクチャ（`--arch`、カンマ区切り複数値・いずれか一致）、ステム数（`--stems`、完全一致）、ステム名（`--stem`）でソート前にリストを絞り込めます。サーバー API でも同じフィルタを受け付けます（`/api/v1/models?arch=…&stems=…&stem=…`）。
 
 ### サーバー
 
@@ -147,7 +154,7 @@ REST エンドポイント:
 | GET | `/api/v1/tasks/{id}` | タスク状態（queued/running/done/failed/cancelled + 進捗） |
 | GET | `/api/v1/tasks/{id}/download?stem=` | ステム結果のダウンロード |
 | DELETE | `/api/v1/tasks/{id}` | 実行中タスクのキャンセル / 終了タスクの削除 |
-| GET | `/api/v1/models?backend=local\|mvsep` | モデルリスト / MVSEP アルゴリズムカタログ |
+| GET | `/api/v1/models?backend=local\|mvsep[&arch=&stems=&stem=]` | モデルリスト（アーキテクチャ / ステム数 / ステム名の任意フィルタ、local のみ）/ MVSEP アルゴリズムカタログ |
 | GET | `/api/v1/rankings` | ランキングデータ（コミュニティガイド / MVSEP リーダーボードスナップショット） |
 | GET | `/api/v1/health` | ヘルスチェック |
 

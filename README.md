@@ -127,9 +127,16 @@ asep rankings                            # community guide section, grouped by c
 asep rankings --section mvsep            # MVSEP multisong leaderboard snapshot, by instrum rank
 asep rankings --section mvsep --view vocals --top 10
 asep rankings --section community --sort sdr
+
+# Filter by architecture / stem count / stem name (combinable with --sort / --top)
+asep models --arch bs_roformer           # all bs_roformer models
+asep models --arch mdx,vr                # any of mdx or vr
+asep models --stems 4                    # exactly 4 stems
+asep models --stem drums                 # models that separate drums
+asep models --arch mdx --stem vocals --top 5
 ```
 
-Scores and rankings come from three sources: the python-audio-separator benchmark (MUSDB18-HQ median SDR, kept in `models.json`), the deton24 UVR-MDX-Demucs-GSEP community guide (category rank + fullness/bleedless/SDR metrics), and the MVSEP multisong leaderboard snapshot (per-stem SDR). The latter two live in the separate `rankings.json` (see below). Models without SDR data are listed last when sorting by SDR; models without community ranking are listed last when sorting by community. Architectures other than mdx / bs_roformer / mel_band_roformer / bs_polarformer are catalogued for the MVSEP cloud backend but cannot run locally.
+Scores and rankings come from three sources: the python-audio-separator benchmark (MUSDB18-HQ median SDR, kept in `models.json`), the deton24 UVR-MDX-Demucs-GSEP community guide (category rank + fullness/bleedless/SDR metrics), and the MVSEP multisong leaderboard snapshot (per-stem SDR). The latter two live in the separate `rankings.json` (see below). Models without SDR data are listed last when sorting by SDR; models without community ranking are listed last when sorting by community. Architectures other than mdx / bs_roformer / mel_band_roformer / bs_polarformer are catalogued for the MVSEP cloud backend but cannot run locally. Filtering by architecture (`--arch`, comma-separated multi-value, any match), exact stem count (`--stems`) or stem name (`--stem`) narrows the list before ranking; the same filters are accepted by the server API (`/api/v1/models?arch=…&stems=…&stem=…`).
 
 ### Server
 
@@ -149,7 +156,7 @@ REST endpoints:
 | GET | `/api/v1/tasks/{id}` | task status (queued/running/done/failed/cancelled + progress) |
 | GET | `/api/v1/tasks/{id}/download?stem=` | download a stem |
 | DELETE | `/api/v1/tasks/{id}` | cancel a running task or clean up a finished one |
-| GET | `/api/v1/models?backend=local\|mvsep` | model list / MVSEP algorithm catalog |
+| GET | `/api/v1/models?backend=local\|mvsep[&arch=&stems=&stem=]` | model list (optional arch / stem-count / stem filters, local only) / MVSEP algorithm catalog |
 | GET | `/api/v1/rankings` | ranking data (community guide / MVSEP leaderboard snapshot) |
 | GET | `/api/v1/health` | health check |
 

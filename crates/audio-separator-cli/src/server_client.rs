@@ -9,6 +9,7 @@
 use std::path::{Path, PathBuf};
 
 use audio_separator_core::error::{Error, Result};
+use audio_separator_core::model::ModelFilter;
 use serde::Deserialize;
 use serde_json::Value;
 
@@ -184,11 +185,25 @@ impl ServerClient {
         Ok(())
     }
 
-    /// GET /api/v1/models?backend= —— 查询 server 侧模型/算法列表。
-    pub async fn models(&self, backend: &str) -> Result<Value> {
-        let url = format!("{}/api/v1/models?backend={backend}", self.base);
+    /// GET /api/v1/models?backend= —— 查询 server 侧模型/算法列表（支持架构/分轨过滤）。
+    pub async fn models(&self, backend: &str, filter: &ModelFilter) -> Result<Value> {
+        let mut url = reqwest::Url::parse(&format!("{}/api/v1/models", self.base))
+            .map_err(|e| Error::Other(format!("invalid server base url: {e}")))?;
+        {
+            let mut qp = url.query_pairs_mut();
+            qp.append_pair("backend", backend);
+            if let Some(archs) = &filter.arch {
+                qp.append_pair("arch", &archs.join(","));
+            }
+            if let Some(n) = filter.stems {
+                qp.append_pair("stems", &n.to_string());
+            }
+            if let Some(s) = &filter.stem {
+                qp.append_pair("stem", s);
+            }
+        }
         let resp = self
-            .authed(self.http.get(&url))
+            .authed(self.http.get(url))
             .send()
             .await
             .map_err(|e| Error::Other(format!("server request failed: {e}")))?;

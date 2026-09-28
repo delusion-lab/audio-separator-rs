@@ -182,4 +182,122 @@ impl ModelList {
     pub fn get(&self, name: &str) -> Option<&ModelEntry> {
         self.models.iter().find(|m| m.name == name)
     }
+
+    /// 按过滤条件返回子清单：架构（可多个，任一匹配）/ 分轨数量 / 含某声部。
+    /// 条件缺省时不做对应过滤；无条件时等价于全量复制。
+    pub fn filter(&self, f: &ModelFilter) -> ModelList {
+        let models = self
+            .models
+            .iter()
+            .filter(|m| {
+                if let Some(archs) = &f.arch {
+                    if !archs.iter().any(|a| a == &m.architecture) {
+                        return false;
+                    }
+                }
+                if let Some(n) = f.stems {
+                    if m.stems.len() != n {
+                        return false;
+                    }
+                }
+                if let Some(s) = &f.stem {
+                    if !m.stems.iter().any(|x| x == s) {
+                        return false;
+                    }
+                }
+                true
+            })
+            .cloned()
+            .collect();
+        ModelList {
+            version: self.version,
+            models,
+        }
+    }
+}
+
+/// 模型清单过滤条件（`ModelList::filter` 使用）。
+#[derive(Debug, Clone, Default)]
+pub struct ModelFilter {
+    /// 架构白名单（如 `["bs_roformer", "mdx"]`）；None 表示不过滤。
+    pub arch: Option<Vec<String>>,
+    /// 分轨数量（`stems.len()` 精确匹配）；None 表示不过滤。
+    pub stems: Option<usize>,
+    /// 必须包含的声部名（如 `vocals` / `drums`）；None 表示不过滤。
+    pub stem: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry(name: &str, arch: &str, stems: &[&str]) -> ModelEntry {
+        ModelEntry {
+            name: name.to_string(),
+            architecture: arch.to_string(),
+            engine: String::new(),
+            source_url: None,
+            sha256: None,
+            config_url: None,
+            local_path: None,
+            stems: stems.iter().map(|s| s.to_string()).collect(),
+            license: None,
+            params: serde_json::Value::Null,
+            mvsep: None,
+            scores: None,
+        }
+    }
+
+    fn list() -> ModelList {
+        ModelList {
+            version: 1,
+            models: vec![
+                entry("mdx_a", "mdx", &["vocals", "instrumental"]),
+                entry("demucs_b", "htdemucs", &["vocals", "drums", "bass", "other"]),
+                entry("mel_c", "mel_band_roformer", &["vocals", "instrumental"]),
+            ],
+        }
+    }
+
+    #[test]
+    fn filter_by_arch() {
+        let l = list().filter(&ModelFilter {
+            arch: Some(vec!["mdx".to_string(), "mel_band_roformer".to_string()]),
+            ..Default::default()
+        });
+        assert_eq!(l.models.len(), 2);
+        assert!(l.models.iter().all(|m| m.architecture != "htdemucs"));
+    }
+
+    #[test]
+    fn filter_by_stem_count_and_stem_name() {
+        let l = list().filter(&ModelFilter {
+            stems: Some(4),
+            ..Default::default()
+        });
+        assert_eq!(l.models.len(), 1);
+        assert_eq!(l.models[0].name, "demucs_b");
+
+        let l = list().filter(&ModelFilter {
+            stem: Some("drums".to_string()),
+            ..Default::default()
+        });
+        assert_eq!(l.models.len(), 1);
+        assert_eq!(l.models[0].name, "demucs_b");
+
+        // 组合：mdx 且含 drums → 空
+        let l = list().filter(&ModelFilter {
+            arch: Some(vec!["mdx".to_string()]),
+            stem: Some("drums".to_string()),
+            ..Default::default()
+        });
+        assert!(l.models.is_empty());
+    }
+
+    #[test]
+    fn filter_default_keeps_all() {
+        let l = list().filter(&ModelFilter::default());
+        assert_eq!(l.models.len(), 3);
+        assert_eq!(l.version, 1);
+    }
 }

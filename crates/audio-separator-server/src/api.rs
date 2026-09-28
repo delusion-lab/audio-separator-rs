@@ -304,13 +304,28 @@ pub async fn cancel(
     }
 }
 
-/// GET /api/v1/models?backend=local|mvsep —— 模型/算法列表。
+/// GET /api/v1/models?backend=local|mvsep[&arch=&stems=&stem=] —— 模型/算法列表。
+/// `arch`：逗号分隔的架构白名单（任一匹配）；`stems`：分轨数量精确匹配；
+/// `stem`：必须包含的声部名。过滤仅作用于 local 清单。
 pub async fn models(
     State(st): State<Arc<AppState>>,
     Query(q): Query<ModelsQuery>,
 ) -> ApiResult {
     match q.backend.as_deref().unwrap_or("local") {
-        "local" => Ok(Json(json!(st.local_manifest)).into_response()),
+        "local" => {
+            let filter = audio_separator_core::model::ModelFilter {
+                arch: q.arch.as_ref().map(|s| {
+                    s.split(',')
+                        .map(|a| a.trim().to_string())
+                        .filter(|a| !a.is_empty())
+                        .collect()
+                }),
+                stems: q.stems,
+                stem: q.stem.clone(),
+            };
+            let list = st.local_manifest.filter(&filter);
+            Ok(Json(json!(list)).into_response())
+        }
         "mvsep" => {
             let client = st
                 .mvsep_client
@@ -387,6 +402,12 @@ pub struct DownloadQuery {
 #[derive(Deserialize)]
 pub struct ModelsQuery {
     backend: Option<String>,
+    /// 架构白名单（逗号分隔，任一匹配；仅 local 清单生效）。
+    arch: Option<String>,
+    /// 分轨数量精确匹配（如 2 / 4 / 6）。
+    stems: Option<usize>,
+    /// 必须包含的声部名（如 vocals / instrumental / drums）。
+    stem: Option<String>,
 }
 
 /// 任务记录 → API JSON（隐藏内部路径细节，暴露输出文件名）。
@@ -533,6 +554,98 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn models_local_filters_by_arch_and_stems() {
+        let mut state = test_state(None);
+        // 构造含 2 条模型的本地清单：mdx 2-stem + htdemucs 4-stem
+        let mut m = audio_separator_core::model::ModelList {
+            version: 1,
+            models: Vec::new(),
+        };
+        m.models.push(audio_separator_core::model::ModelEntry {
+            name: "mdx_a".to_string(),
+            architecture: "mdx".to_string(),
+            engine: "onnx".to_string(),
+            source_url: None,
+            sha256: None,
+            config_url: None,
+            local_path: None,
+            stems: vec!["vocals".to_string(), "instrumental".to_string()],
+            license: None,
+            params: serde_json::Value::Null,
+            mvsep: None,
+            scores: None,
+        });
+        m.models.push(audio_separator_core::model::ModelEntry {
+            name: "demucs_b".to_string(),
+            architecture: "htdemucs".to_string(),
+            engine: "candle".to_string(),
+            source_url: None,
+            sha256: None,
+            config_url: None,
+            local_path: None,
+            stems: vec![
+                "vocals".to_string(),
+                "drums".to_string(),
+                "bass".to_string(),
+                "other".to_string(),
+            ],
+            license: None,
+            params: serde_json::Value::Null,
+            mvsep: None,
+            scores: None,
+        });
+        Arc::get_mut(&mut state).unwrap().local_manifest = m;
+        // arch 过滤
+        let app = build_router(state.clone());
+        let res = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/models?backend=local&arch=mdx")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(res.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(res.into_body(), 1024 * 1024).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["models"].as_array().unwrap().len(), 1);
+        assert_eq!(v["models"][0]["name"], "mdx_a");
+
+        // stems 数量过滤（4 分轨）
+        let res = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/models?backend=local&stems=4")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), 1024 * 1024).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["models"].as_array().unwrap().len(), 1);
+        assert_eq!(v["models"][0]["name"], "demucs_b");
+
+        // 组合过滤：arch=mdx 且含 drums → 空
+        let res = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .uri("/api/v1/models?backend=local&arch=mdx&stem=drums")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = axum::body::to_bytes(res.into_body(), 1024 * 1024).await.unwrap();
+        let v: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(v["models"].as_array().unwrap().len(), 0);
     }
 
     #[tokio::test]

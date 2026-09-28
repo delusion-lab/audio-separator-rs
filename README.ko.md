@@ -125,9 +125,16 @@ asep rankings                            # 커뮤니티 가이드 섹션, 카테
 asep rankings --section mvsep            # MVSEP multisong 리더보드 스냅샷(instrum 순위)
 asep rankings --section mvsep --view vocals --top 10
 asep rankings --section community --sort sdr
+
+# 아키텍처 / 스템 수 / 스템 이름으로 필터(--sort / --top과 조합 가능)
+asep models --arch bs_roformer           # 모든 bs_roformer 모델
+asep models --arch mdx,vr                # mdx 또는 vr 중 하나
+asep models --stems 4                    # 정확히 4개 스템
+asep models --stem drums                 # 드럼 분리가 가능한 모델
+asep models --arch mdx --stem vocals --top 5
 ```
 
-점수와 랭킹은 세 가지 소스에서 가져옵니다: python-audio-separator 벤치마크(MUSDB18-HQ 중앙값 SDR, `models.json`에 유지), deton24 UVR-MDX-Demucs-GSEP 커뮤니티 가이드(카테고리 순위 + fullness/bleedless/SDR 지표), MVSEP multisong 리더보드 스냅샷(스템별 SDR). 후자 둘은 독립적인 `rankings.json`에 저장됩니다(아래 참조). SDR 정렬 시 점수가 없는 모델은 마지막에 배치됩니다. 커뮤니티 정렬 시 커뮤니티 추천이 없는 모델은 마지막에 배치됩니다. mdx / bs_roformer / mel_band_roformer / bs_polarformer 이외의 아키텍처는 MVSEP 클라우드 백엔드용으로 등록되어 있으며 로컬에서 실행할 수 없습니다.
+점수와 랭킹은 세 가지 소스에서 가져옵니다: python-audio-separator 벤치마크(MUSDB18-HQ 중앙값 SDR, `models.json`에 유지), deton24 UVR-MDX-Demucs-GSEP 커뮤니티 가이드(카테고리 순위 + fullness/bleedless/SDR 지표), MVSEP multisong 리더보드 스냅샷(스템별 SDR). 후자 둘은 독립적인 `rankings.json`에 저장됩니다(아래 참조). SDR 정렬 시 점수가 없는 모델은 마지막에 배치됩니다. 커뮤니티 정렬 시 커뮤니티 추천이 없는 모델은 마지막에 배치됩니다. mdx / bs_roformer / mel_band_roformer / bs_polarformer 이외의 아키텍처는 MVSEP 클라우드 백엔드용으로 등록되어 있으며 로컬에서 실행할 수 없습니다. 아키텍처(`--arch`, 쉼표 구분 다중 값·하나라도 일치), 스템 수(`--stems`, 정확 일치), 스템 이름(`--stem`)으로 정렬 전에 목록을 좁힐 수 있습니다. 서버 API도 동일한 필터를 지원합니다(`/api/v1/models?arch=…&stems=…&stem=…`).
 
 ### 서버
 
@@ -147,7 +154,7 @@ REST 엔드포인트:
 | GET | `/api/v1/tasks/{id}` | 작업 상태(queued/running/done/failed/cancelled + 진행률) |
 | GET | `/api/v1/tasks/{id}/download?stem=` | 스템 결과 다운로드 |
 | DELETE | `/api/v1/tasks/{id}` | 실행 중 작업 취소 / 종료 작업 정리 |
-| GET | `/api/v1/models?backend=local\|mvsep` | 모델 목록 / MVSEP 알고리즘 카탈로그 |
+| GET | `/api/v1/models?backend=local\|mvsep[&arch=&stems=&stem=]` | 모델 목록(선택 아키텍처 / 스템 수 / 스템 이름 필터, local만)/ MVSEP 알고리즘 카탈로그 |
 | GET | `/api/v1/rankings` | 랭킹 데이터(커뮤니티 가이드 / MVSEP 리더보드 스냅샷) |
 | GET | `/api/v1/health` | 헬스 체크 |
 

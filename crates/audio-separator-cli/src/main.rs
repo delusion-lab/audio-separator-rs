@@ -18,7 +18,7 @@ use audio_separator_core::config::{Config, ModelListSource, MvsepRegion};
 use audio_separator_core::error::{Error, Result};
 use audio_separator_core::job::ProgressEvent;
 use server_client::{ServerClient, SubmitArgs};
-use audio_separator_core::model::{ModelRef, OutputFormat};
+use audio_separator_core::model::{ModelFilter, ModelRef, OutputFormat};
 use clap::{Parser, Subcommand};
 use tokio::sync::mpsc;
 
@@ -64,6 +64,15 @@ enum Command {
         /// 仅显示排名前 N 个模型（按 SDR 降序；0 表示全部）。
         #[arg(long, default_value_t = 0)]
         top: usize,
+        /// 按架构过滤（逗号分隔多个，任一匹配）：mdx / vr / bs_roformer / mel_band_roformer / bs_polarformer / mdx23c / htdemucs 等。
+        #[arg(long, value_delimiter = ',')]
+        arch: Option<Vec<String>>,
+        /// 按分轨数量过滤（stems 个数精确匹配，如 2 / 4 / 6）。
+        #[arg(long)]
+        stems: Option<usize>,
+        /// 按分离功能过滤：必须包含的声部名（如 vocals / instrumental / drums / bass / other / lead_vocals）。
+        #[arg(long)]
+        stem: Option<String>,
     },
 
     /// Show model details (architecture, engine, stems, params, source, rankings).
@@ -336,6 +345,9 @@ async fn main() {
             auth_token,
             sort,
             top,
+            arch,
+            stems,
+            stem,
         } => run_models(
             backend,
             models_file,
@@ -346,6 +358,9 @@ async fn main() {
             auth_token,
             sort,
             top,
+            arch,
+            stems,
+            stem,
         )
         .await,
         Command::ModelInfo {
@@ -762,23 +777,27 @@ async fn run_models(
     auth_token: Option<String>,
     sort: ModelsSort,
     top: usize,
+    arch: Option<Vec<String>>,
+    stems: Option<usize>,
+    stem: Option<String>,
 ) -> Result<()> {
     if backend == BackendArg::Mvsep {
         return run_models_mvsep().await;
     }
     if backend == BackendArg::Server {
-        return run_models_server(&server_url, auth_token, sort, top).await;
+        return run_models_server(&server_url, auth_token, sort, top, arch, stems, stem).await;
     }
+    let filter = ModelFilter { arch, stems, stem };
     let cfg = build_config(models_file, models_url, rankings_file, rankings_url)?;
     let manager = tokio::task::spawn_blocking(move || {
         ModelManager::load(&cfg.models, cfg.network.proxy.as_deref())
     })
     .await
     .map_err(|e| Error::Other(format!("model list load failed: {e}")))??;
-    let mut list = manager.list().clone();
     let rankings = manager.rankings();
+    let mut list = manager.list().filter(&filter);
     apply_list_options(&mut list, sort, top, rankings);
-    print_model_list(&list, sort, top, rankings);
+    print_model_list(&list, sort, top, rankings, &filter);
     Ok(())
 }
 
@@ -824,11 +843,27 @@ fn print_model_list(
     sort: ModelsSort,
     top: usize,
     rankings: &audio_separator_core::rankings::RankingsList,
+    filter: &ModelFilter,
 ) {
     if list.models.is_empty() {
-        println!("model list is empty (models.list not configured or list has no models)");
+        println!("model list is empty (models.list not configured or no models match the filters)");
         return;
     }
+    let mut conditions: Vec<String> = Vec::new();
+    if let Some(archs) = &filter.arch {
+        conditions.push(format!("arch={}", archs.join(",")));
+    }
+    if let Some(n) = filter.stems {
+        conditions.push(format!("{n} stems"));
+    }
+    if let Some(s) = &filter.stem {
+        conditions.push(format!("stem contains {s}"));
+    }
+    let filter_seg = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!(", filtered by {}", conditions.join(", "))
+    };
     let suffix = match sort {
         ModelsSort::Sdr => {
             if top > 0 {
@@ -847,7 +882,7 @@ fn print_model_list(
         ModelsSort::Name => String::new(),
     };
     println!(
-        "model list v{} ({} models{suffix})",
+        "model list v{} ({} models{suffix}{filter_seg})",
         list.version,
         list.models.len()
     );
@@ -912,19 +947,23 @@ fn print_model_list(
     }
 }
 
-/// `models --backend server`：从 asep-server API 拉取本地清单。
+/// `models --backend server`：从 asep-server API 拉取本地清单（支持过滤参数透传）。
 async fn run_models_server(
     server_url: &str,
     auth_token: Option<String>,
     sort: ModelsSort,
     top: usize,
+    arch: Option<Vec<String>>,
+    stems: Option<usize>,
+    stem: Option<String>,
 ) -> Result<()> {
+    let filter = ModelFilter { arch, stems, stem };
     let client = ServerClient::new(server_url, auth_token)?;
-    let v = client.models("local").await?;
+    let v = client.models("local", &filter).await?;
     let mut list: audio_separator_core::model::ModelList = serde_json::from_value(v)
         .map_err(|e| Error::Other(format!("invalid server model list: {e}")))?;
     apply_list_options(&mut list, sort, top, &audio_separator_core::rankings::RankingsList::default());
-    print_model_list(&list, sort, top, &audio_separator_core::rankings::RankingsList::default());
+    print_model_list(&list, sort, top, &audio_separator_core::rankings::RankingsList::default(), &filter);
     Ok(())
 }
 
