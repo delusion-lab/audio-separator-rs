@@ -52,7 +52,7 @@ enum Command {
         /// Bearer token for the asep-server API (optional).
         #[arg(long)]
         auth_token: Option<String>,
-        /// 排序方式：name（按名称，默认）/ sdr（按 musdb SDR 降序）。
+        /// 排序方式：name（默认）/ sdr（musdb SDR 降序）/ community（社区推荐排名升序）。
         #[arg(long, value_enum, default_value_t = ModelsSort::Name)]
         sort: ModelsSort,
         /// 仅显示排名前 N 个模型（按 SDR 降序；0 表示全部）。
@@ -217,6 +217,8 @@ enum ModelsSort {
     Name,
     /// 按 MUSDB18-HQ vocals 中位 SDR 降序（无分数的排最后）。
     Sdr,
+    /// 按社区推荐排名升序（有 rank 的排前，无 rank 的排后；同 rank 按 category 分组）。
+    Community,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
@@ -702,6 +704,18 @@ fn apply_list_options(
             }
         });
     }
+    if sort == ModelsSort::Community {
+        list.models.sort_by(|a, b| {
+            let ra = a.scores.as_ref().and_then(|s| s.community_rank.as_ref()).and_then(|c| c.rank);
+            let rb = b.scores.as_ref().and_then(|s| s.community_rank.as_ref()).and_then(|c| c.rank);
+            match (ra, rb) {
+                (Some(x), Some(y)) => x.cmp(&y),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            }
+        });
+    }
     if top > 0 && list.models.len() > top {
         list.models.truncate(top);
     }
@@ -717,20 +731,28 @@ fn print_model_list(
         println!("model list is empty (models.list not configured or list has no models)");
         return;
     }
-    if sort == ModelsSort::Sdr {
-        let suffix = if top > 0 {
-            format!(", sorted by SDR descending, top {top}")
-        } else {
-            ", sorted by SDR descending".to_string()
-        };
-        println!(
-            "model list v{} ({} models{suffix})",
-            list.version,
-            list.models.len()
-        );
-    } else {
-        println!("model list v{} ({} models)", list.version, list.models.len());
-    }
+    let suffix = match sort {
+        ModelsSort::Sdr => {
+            if top > 0 {
+                format!(", sorted by SDR descending, top {top}")
+            } else {
+                ", sorted by SDR descending".to_string()
+            }
+        }
+        ModelsSort::Community => {
+            if top > 0 {
+                format!(", sorted by community rank ascending, top {top}")
+            } else {
+                ", sorted by community rank ascending".to_string()
+            }
+        }
+        ModelsSort::Name => String::new(),
+    };
+    println!(
+        "model list v{} ({} models{suffix})",
+        list.version,
+        list.models.len()
+    );
     for (i, m) in list.models.iter().enumerate() {
         let stems = m.stems.join(", ");
         let mvsep = m
@@ -738,15 +760,31 @@ fn print_model_list(
             .as_ref()
             .map(|mv| format!(" mvsep:{}", mv.sep_type))
             .unwrap_or_default();
-        let scores_seg = match (
-            m.scores.as_ref().and_then(|s| s.musdb_sdr),
-            m.scores.as_ref().and_then(|s| s.community_rank),
-        ) {
-            (Some(sdr), Some(rank)) => format!(" | SDR: {sdr:.2}dB rank:#{rank}"),
-            (Some(sdr), None) => format!(" | SDR: {sdr:.2}dB"),
-            (None, Some(rank)) => format!(" | rank:#{rank}"),
-            (None, None) => String::new(),
-        };
+        // SDR 与社区排名分别构建片段后拼接（两者可同时显示）。
+        let sdr_seg = m
+            .scores
+            .as_ref()
+            .and_then(|s| s.musdb_sdr)
+            .map(|sdr| format!(" | SDR: {sdr:.2}dB"))
+            .unwrap_or_default();
+        let community_seg = m
+            .scores
+            .as_ref()
+            .and_then(|s| s.community_rank.as_ref())
+            .map(|c| {
+                // category 取最后一个 ">" 后的部分（如 "2 stems > instrumentals" → "instrumentals"）。
+                let cat_short = c.category.as_ref().map(|cat| {
+                    cat.rsplit(">").next().unwrap_or(cat.as_str()).trim().to_string()
+                });
+                match (c.rank, cat_short) {
+                    (Some(rank), Some(cat)) => format!(" | community: #{rank} {cat}"),
+                    (None, Some(cat)) => format!(" | community: {cat}"),
+                    (Some(rank), None) => format!(" | community: #{rank}"),
+                    (None, None) => String::new(),
+                }
+            })
+            .unwrap_or_default();
+        let scores_seg = format!("{sdr_seg}{community_seg}");
         let src = m
             .local_path
             .as_ref()

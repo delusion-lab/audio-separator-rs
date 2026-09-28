@@ -102,7 +102,7 @@ asep job-status <task_id> --server-url http://127.0.0.1:8080
 
 ### 모델 목록과 랭킹
 
-매니페스트의 모든 모델을 나열하며, 필요에 따라 MUSDB18-HQ SDR로 순위를 매깁니다:
+매니페스트의 모든 모델을 나열하며, 필요에 따라 MUSDB18-HQ SDR 또는 커뮤니티 추천 순으로 순위를 매깁니다:
 
 ```sh
 # 모든 모델 나열(이름순)
@@ -114,11 +114,14 @@ asep models --sort sdr
 # SDR 상위 10개 모델
 asep models --sort sdr --top 10
 
+# 커뮤니티 추천 순으로 랭킹(deton24 가이드, 오름차순; 카테고리+순위 표시)
+asep models --sort community
+
 # 단일 모델 상세 조회(점수가 있으면 함께 표시)
 asep model-info model_bs_roformer_ep_368_sdr_12.9628
 ```
 
-점수는 python-audio-separator 벤치마크(MUSDB18-HQ 중앙값 SDR)에서 가져옵니다. 커뮤니티 랭킹(Google Doc)은 추후 제공 예정입니다. SDR 정렬 시 점수가 없는 모델은 마지막에 배치됩니다. mdx / bs_roformer / mel_band_roformer / bs_polarformer 이외의 아키텍처는 MVSEP 클라우드 백엔드용으로 등록되어 있으며 로컬에서 실행할 수 없습니다.
+점수는 세 가지 소스에서 가져옵니다: python-audio-separator 벤치마크(MUSDB18-HQ 중앙값 SDR), deton24 UVR-MDX-Demucs-GSEP 커뮤니티 가이드(카테고리 순위 + fullness/bleedless/SDR 지표), MVSEP 플랫폼 카탈로그. SDR 정렬 시 점수가 없는 모델은 마지막에 배치됩니다. 커뮤니티 정렬 시 커뮤니티 추천이 없는 모델은 마지막에 배치됩니다. mdx / bs_roformer / mel_band_roformer / bs_polarformer 이외의 아키텍처는 MVSEP 클라우드 백엔드용으로 등록되어 있으며 로컬에서 실행할 수 없습니다.
 
 ### 서버
 

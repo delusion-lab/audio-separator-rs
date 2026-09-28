@@ -102,7 +102,7 @@ asep job-status <task_id> --server-url http://127.0.0.1:8080
 
 ### 模型清单与排名
 
-列出 manifest 中的所有模型，可按 MUSDB18-HQ SDR 排序：
+列出 manifest 中的所有模型，可按 MUSDB18-HQ SDR 或社区推荐排序：
 
 ```sh
 # 列出所有模型（按名称排序）
@@ -114,11 +114,14 @@ asep models --sort sdr
 # SDR 前 10 名
 asep models --sort sdr --top 10
 
+# 按社区推荐排名（deton24 指南，升序；显示分类+排名）
+asep models --sort community
+
 # 查看单个模型详情（含分数数据）
 asep model-info model_bs_roformer_ep_368_sdr_12.9628
 ```
 
-分数来自 python-audio-separator 基准测试（MUSDB18-HQ 中位 SDR）。社区排名（Google Doc）待接入。按 SDR 排序时无分数的模型排在最后。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外的架构收录用于 MVSEP 云后端，本地无法运行。
+分数来自三个来源：python-audio-separator 基准测试（MUSDB18-HQ 中位 SDR）、deton24 UVR-MDX-Demucs-GSEP 社区指南（分类排名 + fullness/bleedless/SDR 指标）、以及 MVSEP 平台目录。按 SDR 排序时无分数的模型排在最后；按社区排名排序时无社区推荐的模型排在最后。mdx / bs_roformer / mel_band_roformer / bs_polarformer 以外的架构收录用于 MVSEP 云后端，本地无法运行。
 
 ### 服务端
 

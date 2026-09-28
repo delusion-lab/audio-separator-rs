@@ -104,7 +104,7 @@ Notes: a local input file is uploaded to the server; a URL input is passed throu
 
 ### Model list & ranking
 
-List all models in the manifest, optionally ranked by MUSDB18-HQ SDR:
+List all models in the manifest, optionally ranked by MUSDB18-HQ SDR or community recommendation:
 
 ```sh
 # List all models (sorted by name)
@@ -116,11 +116,14 @@ asep models --sort sdr
 # Top 10 models by SDR
 asep models --sort sdr --top 10
 
+# Rank by community recommendation (deton24 guide, ascending; shows category + rank)
+asep models --sort community
+
 # Inspect a single model (includes scores if available)
 asep model-info model_bs_roformer_ep_368_sdr_12.9628
 ```
 
-Scores come from the python-audio-separator benchmark (MUSDB18-HQ median SDR). Community ranking (Google Doc) is planned. Models without SDR data are listed last when sorting by SDR. Architectures other than mdx / bs_roformer / mel_band_roformer / bs_polarformer are catalogued for the MVSEP cloud backend but cannot run locally.
+Scores come from three sources: the python-audio-separator benchmark (MUSDB18-HQ median SDR), the deton24 UVR-MDX-Demucs-GSEP community guide (category rank + fullness/bleedless/SDR metrics), and the MVSEP platform catalog. Models without SDR data are listed last when sorting by SDR; models without community ranking are listed last when sorting by community. Architectures other than mdx / bs_roformer / mel_band_roformer / bs_polarformer are catalogued for the MVSEP cloud backend but cannot run locally.
 
 ### Server
 
