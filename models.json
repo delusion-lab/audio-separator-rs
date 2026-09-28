@@ -436,6 +436,23 @@
       }
     },
     {
+      "name": "BS-Roformer-SW",
+      "architecture": "bs_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/BS-Roformer-SW.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/BS-Roformer-SW.yaml",
+      "mvsep": {
+        "sep_type": 40
+      }
+    },
+    {
       "name": "bs_roformer_instrumental_resurrection_unwa",
       "architecture": "bs_roformer",
       "engine": "candle",
@@ -452,6 +469,40 @@
         "sep_type": 40
       },
       "scores": null
+    },
+    {
+      "name": "bs_roformer_karaoke_anvuew",
+      "architecture": "bs_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/bs_roformer_karaoke_anvuew.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_bs_roformer_karaoke_anvuew.yaml",
+      "mvsep": {
+        "sep_type": 40
+      }
+    },
+    {
+      "name": "bs_roformer_karaoke_frazer_becruily",
+      "architecture": "bs_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/bs_roformer_karaoke_frazer_becruily.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_bs_roformer_karaoke_frazer_becruily.yaml",
+      "mvsep": {
+        "sep_type": 40
+      }
     },
     {
       "name": "bs_roformer_male_female_by_aufr33_sdr_7.2889",
@@ -1143,6 +1194,40 @@
       }
     },
     {
+      "name": "mel_band_roformer_instrumental_2_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_2_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_3_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_3_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
       "name": "mel_band_roformer_instrumental_becruily",
       "architecture": "mel_band_roformer",
       "engine": "candle",
@@ -1168,10 +1253,129 @@
       }
     },
     {
+      "name": "mel_band_roformer_instrumental_bleedless_v1_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_bleedless_v1_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_bleedless_v2_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_bleedless_v2_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_bleedless_v3_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_bleedless_v3_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
       "name": "mel_band_roformer_instrumental_fullness_noise_v4_gabox",
       "architecture": "mel_band_roformer",
       "engine": "candle",
       "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_fullness_noise_v4_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_fullness_v1_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_fullness_v1_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_fullness_v2_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_fullness_v2_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_fullness_v3_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_fullness_v3_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_fv7z_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_fv7z_gabox.ckpt",
       "local_path": null,
       "stems": [
         "vocals",
@@ -1239,6 +1443,142 @@
       "scores": null
     },
     {
+      "name": "mel_band_roformer_instrumental_instv5_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_instv5_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_instv5n_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_instv5n_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_instv6_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_instv6_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_instv6n_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_instv6n_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_instv7_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_instv7_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_instv7n_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_instv7n_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_instv8_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_instv8_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_instrumental_instv8n_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_instrumental_instv8n_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_instrumental_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
       "name": "mel_band_roformer_karaoke_aufr33_viperx_sdr_10.1956",
       "architecture": "mel_band_roformer",
       "engine": "candle",
@@ -1261,6 +1601,23 @@
           "musdb18hq",
           "python-audio-separator/models-scores.json"
         ]
+      }
+    },
+    {
+      "name": "mel_band_roformer_karaoke_becruily",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_karaoke_becruily.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_karaoke_becruily.yaml",
+      "mvsep": {
+        "sep_type": 48
       }
     },
     {
@@ -1307,6 +1664,57 @@
       "scores": null
     },
     {
+      "name": "mel_band_roformer_kim_ft2_bleedless_unwa",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_kim_ft2_bleedless_unwa.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_kim_ft_unwa.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_kim_ft2_unwa",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_kim_ft2_unwa.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_kim_ft_unwa.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_kim_ft3_unwa",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_kim_ft3_unwa.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_kim_ft_unwa.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
       "name": "mel_band_roformer_kim_ft_unwa",
       "architecture": "mel_band_roformer",
       "engine": "candle",
@@ -1349,6 +1757,57 @@
         "sep_type": 48
       },
       "scores": null
+    },
+    {
+      "name": "mel_band_roformer_vocals_becruily",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_vocals_becruily.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_vocals_becruily.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_vocals_fv2_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_vocals_fv2_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_vocals_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_vocals_fv3_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_vocals_fv3_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_vocals_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
     },
     {
       "name": "mel_band_roformer_vocals_fv4_gabox",
@@ -1403,6 +1862,40 @@
         "sep_type": 48
       },
       "scores": null
+    },
+    {
+      "name": "mel_band_roformer_vocals_fv7b_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_vocals_fv7b_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_vocals_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "mel_band_roformer_vocals_gabox",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/mel_band_roformer_vocals_gabox.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_mel_band_roformer_vocals_gabox.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
     },
     {
       "name": "melband_roformer_big_beta4",
@@ -1514,6 +2007,23 @@
       },
       "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/melband_roformer_inst_v1.ckpt",
       "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/melband_roformer_inst_v1.yaml",
+      "mvsep": {
+        "sep_type": 48
+      }
+    },
+    {
+      "name": "melband_roformer_inst_v1_plus",
+      "architecture": "mel_band_roformer",
+      "engine": "candle",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/melband_roformer_inst_v1_plus.ckpt",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
+      "config_url": "https://raw.githubusercontent.com/TRvlvr/application_data/main/mdx_model_data/mdx_c_configs/config_melbandroformer_inst.yaml",
       "mvsep": {
         "sep_type": 48
       }
@@ -2023,6 +2533,22 @@
         ]
       },
       "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR-BVE-4B_SN-44100-1.pth",
+      "mvsep": {
+        "sep_type": 9
+      }
+    },
+    {
+      "name": "UVR-BVE-4B_SN-44100-2",
+      "architecture": "vr",
+      "engine": "none",
+      "source_url": "https://github.com/TRvlvr/model_repo/releases/download/all_public_uvr_models/UVR-BVE-4B_SN-44100-2.pth",
+      "local_path": null,
+      "stems": [
+        "vocals",
+        "instrumental"
+      ],
+      "license": "MIT (UVR / python-audio-separator)",
+      "params": {},
       "mvsep": {
         "sep_type": 9
       }
